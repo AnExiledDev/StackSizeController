@@ -1,4 +1,4 @@
-# Feature Highlights
+## Feature Highlights
 * Allows setting stack sizes for nearly every item in Rust.
 * Items are catagorized and automatically populated in the data file.
 * Stacks can easily be modified globally, by category or individually in the configuration file. If you want complete control over every item you can modify each item individually in the data file.
@@ -6,13 +6,13 @@
 * Item search displays vanilla stack rate as well as custom stack rate after multipliers.
 
 
-# Quick Important Notes
+## Quick Important Notes
 * If stack sizes are modified in the data file (at /oxide/data/StackSizeController.json) defined hard limits will override them, whereas defined multipliers will multiply that base value.
 * Stacking an item over 2,147,483,647 will cause an error when loaded and will not stack the item at that number. 2,147,483,647 is the max for stack sizes for all stack size plugins.
 
 
-# Console Commands
-## **stacksizecontroller.itemsearch**
+## Console Commands
+### **stacksizecontroller.itemsearch**
 ##### **Usage:** `stacksizecontroller.itemsearch <full or partial item name>`
 ##### **Parameter #1:** `full or partial item name` Can be any length, however I suggest you use 2, 3 or more characters to avoid potential slowdowns.
 ##### **Usage Example:** `stacksizecontroller.itemsearch pic` (Result pictured below)
@@ -23,7 +23,7 @@
 
 ----
 
-## **stacksizecontroller.listcategories**
+### **stacksizecontroller.listcategories**
 ##### **Usage:** `stacksizecontroller.listcategories`
 ##### **Parameters:** `No Parameters`
 ##### **Usage Example:** `stacksizecontroller.listcategories` (Result pictured below)
@@ -32,7 +32,7 @@
 
 ----
 
-## **stacksizecontroller.setstack**
+### **stacksizecontroller.setstack**
 ##### **Usage:** `stacksizecontroller.setstack <item shortname or id> <stack limit or multiplier>`
 ##### **Parameter #1:** `Shortname or ID` Use stacksizecontroller.itemsearch if you need help.
 ##### **Parameter #2:** `Stack limit or multiplier` Supplying just a number like "2000" sets that as the max stack limit. Supplying a number immediately followed by an x sets a multiplier, like "20x". Entering "20 x" would cause an error.
@@ -42,7 +42,7 @@
 
 ----
 
-## **stacksizecontroller.setstackcat**
+### **stacksizecontroller.setstackcat**
 ##### **Usage:** `stacksizecontroller.setstackcat <category name> <stack multiplier>`
 ##### **Parameter #1:** `category name` Use stacksizecontroller.listcategories if you need help. (Not case sensitive)
 ##### **Parameter #2:** `Stack multiplier` Unlike setstack this only accepts a multiplier, it does not require and will error if it's provided with a non-numeric character.
@@ -52,7 +52,7 @@
 
 ----
 
-## **stacksizecontroller.setallstacks**
+### **stacksizecontroller.setallstacks**
 ##### **Usage:** `stacksizecontroller.setallstacks <stack multiplier>`
 ##### **Parameter #1:** `Stack multiplier` Unlike setstack this only accepts a multiplier, it does not require and will error if it's provided with a non-numeric character.
 ##### **Usage Example:** `stacksizecontroller.setallstacks 10`
@@ -61,7 +61,7 @@
 
 ----
 
-## **stacksizecontroller.regendatafile**
+### **stacksizecontroller.regendatafile**
 ##### **Usage:** `stacksizecontroller.regendatafile`
 ##### **Parameters:** `No Parameters`
 ##### **Usage Example:** `stacksizecontroller.regendatafile`
@@ -69,14 +69,14 @@
 ##### `Wipes the data file and regenerates the item cache. (Note: Item cache is automatically maintained on plugin initialization.)`
 
 
-# Permissions
+## Permissions
 
 `None provided at this time.`
 
 
-# Configuration
+## Configuration
 
-## Default Configuration
+### Default Configuration
 ```json
 {
   "AllowStackingItemsWithDurability": true,
@@ -112,7 +112,7 @@
 }
 ```
 
-## Configuration Example
+### Configuration Example
 ```json
 {
   "AllowStackingItemsWithDurability": true,
