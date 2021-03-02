@@ -69,11 +69,6 @@
 ##### `Wipes the data file and regenerates the item cache. (Note: Item cache is automatically maintained on plugin initialization.)`
 
 
-## Permissions
-
-`None provided at this time.`
-
-
 ## Configuration
 
 ### Default Configuration
