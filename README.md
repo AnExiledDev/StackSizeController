@@ -18,7 +18,7 @@
 ##### **Parameter #1:** `full or partial item name` Can be any length, however I suggest you use 2, 3 or more characters to avoid potential slowdowns.
 ##### **Usage Example:** `stacksizecontroller.itemsearch pic` (Result pictured below)
 
-##### `Searches item display names, descriptions, and shortnames for all or partial results and returns them in an organized list.`5
+##### Searches item display names, descriptions, and shortnames for all or partial results and returns them in an organized list.
 
 ![itemsearch example](https://i.imgur.com/yOUagsF.png)
 
@@ -39,7 +39,7 @@
 ##### **Parameter #2:** `Stack limit or multiplier` Supplying just a number like "2000" sets that as the max stack limit. Supplying a number immediately followed by an x sets a multiplier, like "20x". Entering "20 x" would cause an error.
 ##### **Usage Example:** `stacksizecontroller.setstack generator.wind.scrap 5` (Hard limit) or `stacksizecontroller.setstack wood 20x` (Multiplier)
 
-##### `Updates configuration file, adding or updating the hard limit list or the multiplier list.`
+##### Updates configuration file, adding or updating the hard limit list or the multiplier list.
 
 ----
 
@@ -49,7 +49,7 @@
 ##### **Parameter #2:** `Stack multiplier` Unlike setstack this only accepts a multiplier, it does not require and will error if it's provided with a non-numeric character.
 ##### **Usage Example:** `stacksizecontroller.setstackcat resources 20`
 
-##### `Updates configuration file, changing the specified categories multiplier.`
+##### Updates configuration file, changing the specified categories multiplier.
 
 ----
 
@@ -58,7 +58,7 @@
 ##### **Parameter #1:** `Stack multiplier` Unlike setstack this only accepts a multiplier, it does not require and will error if it's provided with a non-numeric character.
 ##### **Usage Example:** `stacksizecontroller.setallstacks 10`
 
-##### `Updates configuration file, changing every category to the defined multiplier.`
+##### Updates configuration file, changing every category to the defined multiplier.
 
 ----
 
@@ -67,7 +67,7 @@
 ##### **Parameters:** `No Parameters`
 ##### **Usage Example:** `stacksizecontroller.regendatafile`
 
-##### `Wipes the data file and regenerates the item cache. (Note: Item cache is automatically maintained on plugin initialization.)`
+##### Wipes the data file and regenerates the item cache. (Note: Item cache is automatically maintained on plugin initialization.)
 
 
 ## Configuration
