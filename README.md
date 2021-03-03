@@ -33,6 +33,15 @@
 
 ----
 
+### **stacksizecontroller.listcategoryitems**
+##### **Usage:** `stacksizecontroller.listcategoryitems <exact category name>`
+##### **Parameter #1:** `exact category name` Must be an exact category name. Use stacksizecontroller.listcategories for help.
+##### **Usage Example:** `stacksizecontroller.listcategoryitems Weapons`
+
+##### Output matches `stacksizecontroller.listcategoryitems`
+
+----
+
 ### **stacksizecontroller.setstack**
 ##### **Usage:** `stacksizecontroller.setstack <item shortname or id> <stack limit or multiplier>`
 ##### **Parameter #1:** `Shortname or ID` Use stacksizecontroller.itemsearch if you need help.
@@ -75,6 +84,7 @@
 ### Default Configuration
 ```json
 {
+  "RevertStackSizesToVanillaOnUnload": true,
   "AllowStackingItemsWithDurability": true,
   "HidePrefixWithPluginNameInMessages": false,
   "GlobalStackMultiplier": 1,
@@ -111,6 +121,7 @@
 ### Configuration Example
 ```json
 {
+  "RevertStackSizesToVanillaOnUnload": true,
   "AllowStackingItemsWithDurability": true,
   "HidePrefixWithPluginNameInMessages": false,
   "GlobalStackMultiplier": 1,
@@ -148,6 +159,7 @@
 }
 ```
 
+- `RevertStackSizesToVanillaOnUnload` - If true; item stacksizes are returned to vanilla defaults on plugin unload.
 - `AllowStackingItemsWithDurability` - If enabled, items with durability such as weapons can be stacked if they are at full durability. If disabled items with durability can't be stacked at all. (Contents, attachments and ammo are all returned to the player)
 - `HidePrefixWithPluginNameInMessages` - Currently does nothing. Future version will hide the prefix from chat messages in-game.
 - `GlobalStackMultiplier` - Multiplies all item stacks by this value.
