@@ -6,7 +6,7 @@ using Oxide.Core.Libraries.Covalence;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledGod", "3.1.1")]
+    [Info("Stack Size Controller", "AnExiledGod", "3.1.2")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
@@ -37,13 +37,20 @@ namespace Oxide.Plugins
                 SaveData();
             }
 
-            AddCovalenceCommand("stacksizecontroller.regendatafile", nameof(RegenerateDataFileCommand));
-            AddCovalenceCommand("stacksizecontroller.setstack", nameof(SetStackCommand));
-            AddCovalenceCommand("stacksizecontroller.setstackcat", nameof(SetStackCategoryCommand));
-            AddCovalenceCommand("stacksizecontroller.setallstacks", nameof(SetAllStacksCommand));
-            AddCovalenceCommand("stacksizecontroller.itemsearch", nameof(ItemSearchCommand));
-            AddCovalenceCommand("stacksizecontroller.listcategories", nameof(ListCategoriesCommand));
-            AddCovalenceCommand("stacksizecontroller.listcategoryitems", nameof(ListCategoryItemsCommand));
+            AddCovalenceCommand("stacksizecontroller.regendatafile", nameof(RegenerateDataFileCommand),
+                "stacksizecontroller.regendatafile");
+            AddCovalenceCommand("stacksizecontroller.setstack", nameof(SetStackCommand),
+                "stacksizecontroller.setstack");
+            AddCovalenceCommand("stacksizecontroller.setstackcat", nameof(SetStackCategoryCommand),
+                "stacksizecontroller.setstackcat");
+            AddCovalenceCommand("stacksizecontroller.setallstacks", nameof(SetAllStacksCommand),
+                "stacksizecontroller.setallstacks");
+            AddCovalenceCommand("stacksizecontroller.itemsearch", nameof(ItemSearchCommand),
+                "stacksizecontroller.itemsearch");
+            AddCovalenceCommand("stacksizecontroller.listcategories", nameof(ListCategoriesCommand),
+                "stacksizecontroller.listcategories");
+            AddCovalenceCommand("stacksizecontroller.listcategoryitems", nameof(ListCategoryItemsCommand),
+                "stacksizecontroller.listcategoryitems");
         }
         
         private void OnServerInitialized()
@@ -307,6 +314,8 @@ namespace Oxide.Plugins
             {
                 player.Reply(
                     string.Format(GetMessage("NotEnoughArguments", player.Id), 2));
+
+                return;
             }
             
             ItemDefinition itemDefinition = ItemManager.FindItemDefinition(args[0]);
@@ -343,7 +352,8 @@ namespace Oxide.Plugins
 
             if (_config.IndividualItemStackHardLimits.ContainsKey(itemDefinition.itemid))
             {
-                _config.IndividualItemStackHardLimits[itemDefinition.itemid] = Convert.ToInt32(stackSizeString.TrimEnd('x'));
+                _config.IndividualItemStackHardLimits[itemDefinition.itemid] =
+                    Convert.ToInt32(stackSizeString.TrimEnd('x'));
                 
                 SaveConfig();
                 player.Reply(GetMessage("OperationSuccessful", player.Id));
@@ -351,7 +361,8 @@ namespace Oxide.Plugins
                 return;
             }
             
-            _config.IndividualItemStackHardLimits.Add(itemDefinition.itemid, Convert.ToInt32(stackSizeString.TrimEnd('x')));
+            _config.IndividualItemStackHardLimits.Add(itemDefinition.itemid,
+                Convert.ToInt32(stackSizeString.TrimEnd('x')));
 
             SaveConfig();
             player.Reply(GetMessage("OperationSuccessful", player.Id));
@@ -508,7 +519,7 @@ namespace Oxide.Plugins
                 }
             }
             
-            if (targetItem.GetHeldEntity()?.GetComponent<FlameThrower>() != null)
+            if (targetItem.GetHeldEntity() is FlameThrower)
             {
                 FlameThrower flameThrower = targetItem.GetHeldEntity().GetComponent<FlameThrower>();
 
@@ -519,7 +530,7 @@ namespace Oxide.Plugins
                 }
             }
             
-            if (targetItem.GetHeldEntity()?.GetComponent<Chainsaw>() != null)
+            if (targetItem.GetHeldEntity() is Chainsaw)
             {
                 Chainsaw chainsaw = targetItem.GetHeldEntity().GetComponent<Chainsaw>();
 
