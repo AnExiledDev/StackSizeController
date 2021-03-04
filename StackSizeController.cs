@@ -6,7 +6,7 @@ using Oxide.Core.Libraries.Covalence;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledGod", "3.1.0")]
+    [Info("Stack Size Controller", "AnExiledGod", "3.1.1")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
@@ -16,11 +16,12 @@ namespace Oxide.Plugins
         private void Init()
         {
             _config = Config.ReadObject<ConfigData>();
-            _data = Interface.Oxide.DataFileSystem.ReadObject<ItemIndex>(nameof(StackSizeController)) ??
-                    new ItemIndex();
-
+            _data = Interface.Oxide.DataFileSystem.ReadObject<ItemIndex>(nameof(StackSizeController));
+            
             if (_config.IsNull<ConfigData>())
             {
+                Puts("Generating Default Config File.");
+                
                 LoadDefaultConfig();
             }
             
@@ -28,9 +29,11 @@ namespace Oxide.Plugins
             
             if (_data.IsUnityNull() || _data.ItemCategories.IsUnityNull())
             {
-                _data.VersionNumber = Version;
+                Puts("Generating Data File.");
                 
                 CreateItemIndex();
+                _data.VersionNumber = Version;
+                
                 SaveData();
             }
 
@@ -41,8 +44,25 @@ namespace Oxide.Plugins
             AddCovalenceCommand("stacksizecontroller.itemsearch", nameof(ItemSearchCommand));
             AddCovalenceCommand("stacksizecontroller.listcategories", nameof(ListCategoriesCommand));
             AddCovalenceCommand("stacksizecontroller.listcategoryitems", nameof(ListCategoryItemsCommand));
-
+        }
+        
+        private void OnServerInitialized()
+        {
             SetStackSizes();
+        }
+        
+        private void OnServerSave()
+        {
+            SaveConfig();
+            SaveData();
+        }
+        
+        private void OnTerrainInitialized()
+        {
+            Puts("Ensuring VanillaStackSize integrity.");
+            
+            UpdateItemIndex();
+            SaveData();
         }
 
         private void Unloaded()
@@ -188,7 +208,10 @@ namespace Oxide.Plugins
         
         private void CreateItemIndex()
         {
-            _data.ItemCategories = new Dictionary<string, List<ItemInfo>>();
+            _data = new ItemIndex
+            {
+                ItemCategories = new Dictionary<string, List<ItemInfo>>()
+            };
 
             // Create categories
             foreach (string category in Enum.GetNames(typeof(ItemCategory)))
@@ -229,13 +252,11 @@ namespace Oxide.Plugins
                             VanillaStackSize = itemDefinition.stackable,
                             CustomStackSize = itemDefinition.stackable
                         });
-
-                    return;
                 }
-
+                
                 ItemInfo existingItemInfo = _data.ItemCategories[itemDefinition.category.ToString()]
                     .Find(itemInfo => itemInfo.ItemId == itemDefinition.itemid);
-
+                
                 existingItemInfo.VanillaStackSize = itemDefinition.stackable;
             }
         }
@@ -453,19 +474,7 @@ namespace Oxide.Plugins
         #endregion
 
         #region Hooks
-        
-        private void OnServerSave()
-        {
-            SaveConfig();
-            SaveData();
-        }
-        
-        private void OnTerrainInitialized()
-        {
-            ItemManager.GetItemDefinitions();
-            UpdateItemIndex();
-        }
-        
+
         private object CanStackItem(Item item, Item targetItem)
         {
             if (item.GetOwnerPlayer().IsUnityNull())
@@ -591,6 +600,11 @@ namespace Oxide.Plugins
         {
             ItemInfo customStackInfo = _data.ItemCategories[itemDefinition.category.ToString()]
                 .Find(itemInfo => itemInfo.ItemId == itemDefinition.itemid);
+
+            if (customStackInfo.IsNull<ItemInfo>())
+            {
+                customStackInfo = AddItemToIndex(itemDefinition.itemid);
+            }
 
             int stackable = itemDefinition.stackable;
             if (customStackInfo.VanillaStackSize != customStackInfo.CustomStackSize)
