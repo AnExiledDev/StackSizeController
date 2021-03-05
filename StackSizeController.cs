@@ -135,8 +135,8 @@ namespace Oxide.Plugins
             public bool HidePrefixWithPluginNameInMessages;
 
             public int GlobalStackMultiplier = 1;
-            public Dictionary<string, int> CategoryStackMultipliers = GetCategoriesAndDefaults();
-            public Dictionary<int, int> IndividualItemStackMultipliers = new Dictionary<int, int>();
+            public Dictionary<string, float> CategoryStackMultipliers = GetCategoriesAndDefaults();
+            public Dictionary<int, float> IndividualItemStackMultipliers = new Dictionary<int, float>();
             public Dictionary<int, int> IndividualItemStackHardLimits = new Dictionary<int, int>();
             
             public VersionNumber VersionNumber;
@@ -703,12 +703,13 @@ namespace Oxide.Plugins
             int stackable = _vanillaDefaults[itemDefinition.shortname];
             if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.itemid))
             {
-                return stackable * _config.IndividualItemStackMultipliers[itemDefinition.itemid];
+                return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.itemid]);
             }
             
             if (_config.CategoryStackMultipliers.ContainsKey(itemDefinition.category.ToString()))
             {
-                return stackable * _config.CategoryStackMultipliers[itemDefinition.category.ToString()];
+                return Mathf.RoundToInt(
+                    stackable * _config.CategoryStackMultipliers[itemDefinition.category.ToString()]);
             }
 
             return stackable * _config.GlobalStackMultiplier;
@@ -740,9 +741,9 @@ namespace Oxide.Plugins
             }
         }
 
-        private static Dictionary<string, int> GetCategoriesAndDefaults()
+        private static Dictionary<string, float> GetCategoriesAndDefaults()
         {
-            Dictionary<string, int> categoryDefaults = new Dictionary<string, int>();
+            Dictionary<string, float> categoryDefaults = new Dictionary<string, float>();
             
             foreach (string category in Enum.GetNames(typeof(ItemCategory)))
             {
