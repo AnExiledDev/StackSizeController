@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledGod", "3.1.3")]
+    [Info("Stack Size Controller", "AnExiledGod", "3.1.4")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
@@ -94,6 +94,12 @@ namespace Oxide.Plugins
             _vanillaDefaults =
                 Interface.Oxide.DataFileSystem.ReadObject<Dictionary<string, int>>(nameof(StackSizeController) +
                     "_vanilla-defaults");
+
+            if (_vanillaDefaults.Count == 0)
+            {
+                // Workaround for exception when hotloading
+                MaintainVanillaStackSizes();
+            }
             
             MaintainVanillaStackSizes(true);
             
