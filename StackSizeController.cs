@@ -690,17 +690,17 @@ namespace Oxide.Plugins
                 customStackInfo = AddItemToIndex(itemDefinition.itemid);
             }
 
-            int stackable = _vanillaDefaults[itemDefinition.shortname];
-            if (customStackInfo.CustomStackSize > 0)
-            {
-                stackable = customStackInfo.CustomStackSize;
-            }
-
             if (_config.IndividualItemStackHardLimits.ContainsKey(itemDefinition.itemid))
             {
                 return _config.IndividualItemStackHardLimits[itemDefinition.itemid];
             }
             
+            if (customStackInfo.CustomStackSize > 0)
+            {
+                return customStackInfo.CustomStackSize;
+            }
+
+            int stackable = _vanillaDefaults[itemDefinition.shortname];
             if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.itemid))
             {
                 return stackable * _config.IndividualItemStackMultipliers[itemDefinition.itemid];
