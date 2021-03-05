@@ -36,6 +36,40 @@ namespace Oxide.Plugins
                 
                 SaveData();
             }
+            
+            // Data File Migrations - TODO: Setup full implementation
+            if (_data.VersionNumber <= new VersionNumber(3, 1, 2))
+            {
+                Puts("Datafile version number is less than or equal to v3.1.2. Migration necessary. " + 
+                     "Backing up old datafile...");
+                
+                Interface.Oxide.DataFileSystem.WriteObject(nameof(StackSizeController) + "_backup",
+                    _data);
+
+                if (Interface.Oxide.DataFileSystem.ExistsDatafile(nameof(StackSizeController) + "_backup"))
+                {
+                    foreach (KeyValuePair<string, List<ItemInfo>> items in _data.ItemCategories)
+                    {
+                        foreach (ItemInfo itemInfo in items.Value)
+                        {
+                            if (itemInfo.VanillaStackSize == itemInfo.CustomStackSize)
+                            {
+                                itemInfo.CustomStackSize = 0;
+                            }
+                        }
+                    }
+
+                    _data.VersionNumber = Version;
+                
+                    SaveData();
+                
+                    Puts("Datafile migration complete. Notice: Backup files must be manually deleted.");
+                }
+                else
+                {
+                    Puts("Datafile backup failed. Migration failed, report to developer.");
+                }
+            }
 
             AddCovalenceCommand("stacksizecontroller.regendatafile", nameof(RegenerateDataFileCommand),
                 "stacksizecontroller.regendatafile");
