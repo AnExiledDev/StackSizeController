@@ -96,6 +96,7 @@ namespace Oxide.Plugins
                     "_vanilla-defaults");
             
             MaintainVanillaStackSizes(true);
+            
             SetStackSizes();
         }
         
@@ -689,7 +690,7 @@ namespace Oxide.Plugins
                 customStackInfo = AddItemToIndex(itemDefinition.itemid);
             }
 
-            int stackable = itemDefinition.stackable;
+            int stackable = _vanillaDefaults[itemDefinition.shortname];
             if (customStackInfo.CustomStackSize > 0)
             {
                 stackable = customStackInfo.CustomStackSize;
