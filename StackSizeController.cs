@@ -12,6 +12,7 @@ namespace Oxide.Plugins
     {
         private ConfigData _config;
         private ItemIndex _data;
+        private Dictionary<string, int> _vanillaDefaults;
 
         private void Init()
         {
@@ -101,7 +102,8 @@ namespace Oxide.Plugins
         private void OnTerrainInitialized()
         {
             Puts("Ensuring VanillaStackSize integrity.");
-            
+
+            MaintainVanillaStackSizes();
             UpdateItemIndex();
             SaveData();
         }
@@ -294,11 +296,6 @@ namespace Oxide.Plugins
                             CustomStackSize = 0
                         });
                 }
-                
-                ItemInfo existingItemInfo = _data.ItemCategories[itemDefinition.category.ToString()]
-                    .Find(itemInfo => itemInfo.ItemId == itemDefinition.itemid);
-                
-                existingItemInfo.VanillaStackSize = itemDefinition.stackable;
             }
         }
         
@@ -326,6 +323,26 @@ namespace Oxide.Plugins
                                 AddItemToIndex(itemId);
 
             return itemInfo;
+        }
+
+        private void MaintainVanillaStackSizes()
+        {
+            Dictionary<string, int> vanillaStackSizes = new Dictionary<string, int>();
+
+            foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions())
+            {
+                vanillaStackSizes.Add(itemDefinition.shortname, itemDefinition.stackable);
+                
+                ItemInfo existingItemInfo = _data.ItemCategories[itemDefinition.category.ToString()]
+                    .Find(itemInfo => itemInfo.ItemId == itemDefinition.itemid);
+                
+                existingItemInfo.VanillaStackSize = itemDefinition.stackable;
+            }
+            
+            Interface.Oxide.DataFileSystem.WriteObject(nameof(StackSizeController) + "_vanilla-defaults",
+                vanillaStackSizes);
+
+            _vanillaDefaults = vanillaStackSizes;
         }
 
         #endregion
@@ -608,12 +625,12 @@ namespace Oxide.Plugins
                 newItemMag.contents = 0;
             }
 
-            if (newItem.GetHeldEntity()?.GetComponent<FlameThrower>() != null)
+            if (newItem.GetHeldEntity() is FlameThrower)
             {
                 newItem.GetHeldEntity().GetComponent<FlameThrower>().ammo = 0;
             }
             
-            if (newItem.GetHeldEntity()?.GetComponent<Chainsaw>() != null)
+            if (newItem.GetHeldEntity() is Chainsaw)
             {
                 newItem.GetHeldEntity().GetComponent<Chainsaw>().ammo = 0;
             }
@@ -652,8 +669,7 @@ namespace Oxide.Plugins
             }
 
             int stackable = itemDefinition.stackable;
-            if (customStackInfo.CustomStackSize > 0 &&
-                customStackInfo.VanillaStackSize != customStackInfo.CustomStackSize)
+            if (customStackInfo.CustomStackSize > 0)
             {
                 stackable = customStackInfo.CustomStackSize;
             }
