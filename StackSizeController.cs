@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Oxide.Core;
 using Oxide.Core.Libraries.Covalence;
+using UnityEngine;
 
 namespace Oxide.Plugins
 {
@@ -90,6 +91,11 @@ namespace Oxide.Plugins
         
         private void OnServerInitialized()
         {
+            _vanillaDefaults =
+                Interface.Oxide.DataFileSystem.ReadObject<Dictionary<string, int>>(nameof(StackSizeController) +
+                    "_vanilla-defaults");
+            
+            MaintainVanillaStackSizes(true);
             SetStackSizes();
         }
         
@@ -325,9 +331,24 @@ namespace Oxide.Plugins
             return itemInfo;
         }
 
-        private void MaintainVanillaStackSizes()
+        private void MaintainVanillaStackSizes(bool refreshDataFileOnly = false)
         {
-            Dictionary<string, int> vanillaStackSizes = new Dictionary<string, int>();
+            if (refreshDataFileOnly)
+            {
+                foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions())
+                {
+                    ItemInfo existingItemInfo = _data.ItemCategories[itemDefinition.category.ToString()]
+                        .Find(itemInfo => itemInfo.ItemId == itemDefinition.itemid);
+                
+                    existingItemInfo.VanillaStackSize = GetVanillaStackSize(itemDefinition);
+                }
+
+                SaveData();
+
+                return;
+            }
+            
+            SortedDictionary<string, int> vanillaStackSizes = new SortedDictionary<string, int>();
 
             foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions())
             {
@@ -342,7 +363,7 @@ namespace Oxide.Plugins
             Interface.Oxide.DataFileSystem.WriteObject(nameof(StackSizeController) + "_vanilla-defaults",
                 vanillaStackSizes);
 
-            _vanillaDefaults = vanillaStackSizes;
+            _vanillaDefaults = new Dictionary<string, int>(vanillaStackSizes);
         }
 
         #endregion
@@ -694,10 +715,7 @@ namespace Oxide.Plugins
 
         private int GetVanillaStackSize(ItemDefinition itemDefinition)
         {
-            ItemInfo customStackInfo = _data.ItemCategories[itemDefinition.category.ToString()]
-                .Find(itemInfo => itemInfo.ItemId == itemDefinition.itemid);
-
-            return customStackInfo.VanillaStackSize;
+            return _vanillaDefaults[itemDefinition.shortname];
         }
 
         private void SetStackSizes()
@@ -708,8 +726,8 @@ namespace Oxide.Plugins
                 {
                     continue;
                 }
-                
-                itemDefinition.stackable = GetStackSize(itemDefinition);
+
+                itemDefinition.stackable = Mathf.Clamp(GetStackSize(itemDefinition), 1, int.MaxValue);
             }
         }
 
