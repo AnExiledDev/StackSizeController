@@ -6,7 +6,7 @@ using Oxide.Core.Libraries.Covalence;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledGod", "3.1.2")]
+    [Info("Stack Size Controller", "AnExiledGod", "3.1.3")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
@@ -236,7 +236,7 @@ namespace Oxide.Plugins
                         Shortname = itemDefinition.shortname,
                         HasDurability = itemDefinition.condition.enabled,
                         VanillaStackSize = itemDefinition.stackable,
-                        CustomStackSize = itemDefinition.stackable
+                        CustomStackSize = 0
                     });
             }
             
@@ -257,7 +257,7 @@ namespace Oxide.Plugins
                             Shortname = itemDefinition.shortname,
                             HasDurability = itemDefinition.condition.enabled,
                             VanillaStackSize = itemDefinition.stackable,
-                            CustomStackSize = itemDefinition.stackable
+                            CustomStackSize = 0
                         });
                 }
                 
@@ -278,7 +278,7 @@ namespace Oxide.Plugins
                 Shortname = itemDefinition.shortname,
                 HasDurability = itemDefinition.condition.enabled,
                 VanillaStackSize = itemDefinition.stackable,
-                CustomStackSize = itemDefinition.stackable
+                CustomStackSize = 0
             };
             
             _data.ItemCategories[itemDefinition.category.ToString()].Add(item);
@@ -618,7 +618,8 @@ namespace Oxide.Plugins
             }
 
             int stackable = itemDefinition.stackable;
-            if (customStackInfo.VanillaStackSize != customStackInfo.CustomStackSize)
+            if (customStackInfo.CustomStackSize > 0 &&
+                customStackInfo.VanillaStackSize != customStackInfo.CustomStackSize)
             {
                 stackable = customStackInfo.CustomStackSize;
             }
