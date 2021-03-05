@@ -134,7 +134,7 @@ namespace Oxide.Plugins
             public bool AllowStackingItemsWithDurability = true;
             public bool HidePrefixWithPluginNameInMessages;
 
-            public int GlobalStackMultiplier = 1;
+            public float GlobalStackMultiplier = 1;
             public Dictionary<string, float> CategoryStackMultipliers = GetCategoriesAndDefaults();
             public Dictionary<int, float> IndividualItemStackMultipliers = new Dictionary<int, float>();
             public Dictionary<int, int> IndividualItemStackHardLimits = new Dictionary<int, int>();
@@ -506,7 +506,7 @@ namespace Oxide.Plugins
                 
                 output.AddRow(itemDefinition.itemid.ToString(), itemDefinition.shortname, 
                     itemDefinition.category.ToString(), itemInfo.VanillaStackSize.ToString("N0"), 
-                    itemInfo.CustomStackSize.ToString("N0"));
+                    GetStackSize(itemDefinition).ToString("N0"));
             }
             
             player.Reply(output.ToString());
@@ -549,7 +549,7 @@ namespace Oxide.Plugins
                 
                 output.AddRow(itemDefinition.itemid.ToString(), itemDefinition.shortname, 
                     itemDefinition.category.ToString(), itemInfo.VanillaStackSize.ToString("N0"), 
-                    itemInfo.CustomStackSize.ToString("N0"));
+                    GetStackSize(itemDefinition).ToString("N0"));
             }
             
             player.Reply(output.ToString());
@@ -712,7 +712,7 @@ namespace Oxide.Plugins
                     stackable * _config.CategoryStackMultipliers[itemDefinition.category.ToString()]);
             }
 
-            return stackable * _config.GlobalStackMultiplier;
+            return Mathf.RoundToInt(stackable * _config.GlobalStackMultiplier);
         }
 
         private int GetVanillaStackSize(ItemDefinition itemDefinition)
