@@ -28,6 +28,34 @@ namespace Oxide.Plugins
             }
             
             EnsureConfigIntegrity();
+
+            AddCovalenceCommand("stacksizecontroller.regendatafile", nameof(RegenerateDataFileCommand),
+                "stacksizecontroller.regendatafile");
+            AddCovalenceCommand("stacksizecontroller.setstack", nameof(SetStackCommand),
+                "stacksizecontroller.setstack");
+            AddCovalenceCommand("stacksizecontroller.setstackcat", nameof(SetStackCategoryCommand),
+                "stacksizecontroller.setstackcat");
+            AddCovalenceCommand("stacksizecontroller.setallstacks", nameof(SetAllStacksCommand),
+                "stacksizecontroller.setallstacks");
+            AddCovalenceCommand("stacksizecontroller.itemsearch", nameof(ItemSearchCommand),
+                "stacksizecontroller.itemsearch");
+            AddCovalenceCommand("stacksizecontroller.listcategories", nameof(ListCategoriesCommand),
+                "stacksizecontroller.listcategories");
+            AddCovalenceCommand("stacksizecontroller.listcategoryitems", nameof(ListCategoryItemsCommand),
+                "stacksizecontroller.listcategoryitems");
+        }
+        
+        private void OnServerInitialized()
+        {
+            _vanillaDefaults =
+                Interface.Oxide.DataFileSystem.ReadObject<Dictionary<string, int>>(nameof(StackSizeController) +
+                    "_vanilla-defaults");
+
+            if (_vanillaDefaults.Count == 0)
+            {
+                // Workaround for exception when hotloading
+                MaintainVanillaStackSizes();
+            }
             
             if (_data.IsUnityNull() || _data.ItemCategories.IsUnityNull())
             {
@@ -71,34 +99,6 @@ namespace Oxide.Plugins
                 {
                     Puts("Datafile backup failed. Migration failed, report to developer.");
                 }
-            }
-
-            AddCovalenceCommand("stacksizecontroller.regendatafile", nameof(RegenerateDataFileCommand),
-                "stacksizecontroller.regendatafile");
-            AddCovalenceCommand("stacksizecontroller.setstack", nameof(SetStackCommand),
-                "stacksizecontroller.setstack");
-            AddCovalenceCommand("stacksizecontroller.setstackcat", nameof(SetStackCategoryCommand),
-                "stacksizecontroller.setstackcat");
-            AddCovalenceCommand("stacksizecontroller.setallstacks", nameof(SetAllStacksCommand),
-                "stacksizecontroller.setallstacks");
-            AddCovalenceCommand("stacksizecontroller.itemsearch", nameof(ItemSearchCommand),
-                "stacksizecontroller.itemsearch");
-            AddCovalenceCommand("stacksizecontroller.listcategories", nameof(ListCategoriesCommand),
-                "stacksizecontroller.listcategories");
-            AddCovalenceCommand("stacksizecontroller.listcategoryitems", nameof(ListCategoryItemsCommand),
-                "stacksizecontroller.listcategoryitems");
-        }
-        
-        private void OnServerInitialized()
-        {
-            _vanillaDefaults =
-                Interface.Oxide.DataFileSystem.ReadObject<Dictionary<string, int>>(nameof(StackSizeController) +
-                    "_vanilla-defaults");
-
-            if (_vanillaDefaults.Count == 0)
-            {
-                // Workaround for exception when hotloading
-                MaintainVanillaStackSizes();
             }
 
             SetStackSizes();
