@@ -103,13 +103,7 @@ namespace Oxide.Plugins
 
             SetStackSizes();
         }
-        
-        private void OnServerSave()
-        {
-            SaveConfig();
-            SaveData();
-        }
-        
+
         private void OnTerrainInitialized()
         {
             Puts("Ensuring VanillaStackSize integrity.");
@@ -376,7 +370,7 @@ namespace Oxide.Plugins
                             ItemId = itemDefinition.itemid,
                             Shortname = itemDefinition.shortname,
                             HasDurability = itemDefinition.condition.enabled,
-                            VanillaStackSize = itemDefinition.stackable,
+                            VanillaStackSize = GetVanillaStackSize(itemDefinition),
                             CustomStackSize = 0
                         });
                 }
@@ -394,7 +388,7 @@ namespace Oxide.Plugins
                 ItemId = itemId,
                 Shortname = itemDefinition.shortname,
                 HasDurability = itemDefinition.condition.enabled,
-                VanillaStackSize = itemDefinition.stackable,
+                VanillaStackSize = GetVanillaStackSize(itemDefinition),
                 CustomStackSize = 0
             };
             
@@ -443,6 +437,8 @@ namespace Oxide.Plugins
                         .Find(itemInfo => itemInfo.ItemId == itemDefinition.itemid);
                 
                     existingItemInfo.VanillaStackSize = GetVanillaStackSize(itemDefinition);
+                    
+                    SaveData();
                 }
             }
             
@@ -450,8 +446,6 @@ namespace Oxide.Plugins
                 vanillaStackSizes);
 
             _vanillaDefaults = new Dictionary<string, int>(vanillaStackSizes);
-
-            SaveData();
         }
 
         #endregion
