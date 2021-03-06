@@ -127,6 +127,7 @@ namespace Oxide.Plugins
             public bool RevertStackSizesToVanillaOnUnload = true;
             public bool AllowStackingItemsWithDurability = true;
             public bool HidePrefixWithPluginNameInMessages;
+            public bool DisableDupeFixAndLeaveWeaponMagsAlone;
 
             public float GlobalStackMultiplier = 1;
             public Dictionary<string, float> CategoryStackMultipliers = GetCategoriesAndDefaults(1)
@@ -174,6 +175,11 @@ namespace Oxide.Plugins
             if (_config.HidePrefixWithPluginNameInMessages.IsNull<bool>())
             {
                 _config.HidePrefixWithPluginNameInMessages = configDefault.HidePrefixWithPluginNameInMessages;
+            }
+
+            if (_config.DisableDupeFixAndLeaveWeaponMagsAlone.IsNull<bool>())
+            {
+                _config.DisableDupeFixAndLeaveWeaponMagsAlone = configDefault.DisableDupeFixAndLeaveWeaponMagsAlone;
             }
             
             if (_config.GlobalStackMultiplier.IsNull<bool>())
@@ -646,6 +652,11 @@ namespace Oxide.Plugins
                 }
             }
 
+            if (_config.DisableDupeFixAndLeaveWeaponMagsAlone)
+            {
+                return null;
+            }
+                
             BaseProjectile.Magazine itemMag = 
                 targetItem.GetHeldEntity()?.GetComponent<BaseProjectile>()?.primaryMagazine;
             
@@ -703,6 +714,11 @@ namespace Oxide.Plugins
             if (item.IsBlueprint())
             {
                 newItem.blueprintTarget = item.blueprintTarget;
+            }
+            
+            if (_config.DisableDupeFixAndLeaveWeaponMagsAlone)
+            {
+                return newItem;
             }
             
             BaseProjectile.Magazine newItemMag =
