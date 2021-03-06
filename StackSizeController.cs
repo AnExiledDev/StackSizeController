@@ -563,7 +563,7 @@ namespace Oxide.Plugins
                 
                 output.AddRow(itemDefinition.itemid.ToString(), itemDefinition.shortname, 
                     itemDefinition.category.ToString(), itemInfo.VanillaStackSize.ToString("N0"), 
-                    GetStackSize(itemDefinition).ToString("N0"));
+                    Mathf.Clamp(GetStackSize(itemDefinition), 0, int.MaxValue).ToString("N0"));
             }
             
             player.Reply(output.ToString());
@@ -597,7 +597,7 @@ namespace Oxide.Plugins
             }
             
             TextTable output = new TextTable();
-            output.AddColumns("Unique Id", "Shortname", "Category", "Vanilla Stack", "Custom Stack");
+            output.AddColumns("Unique Id", "Shortname", "Category", "Vanilla Stack", "Custom Stack", "Multiplier");
 
             foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions()
                 .Where(itemDefinition => itemDefinition.category == itemCategory))
@@ -606,7 +606,8 @@ namespace Oxide.Plugins
                 
                 output.AddRow(itemDefinition.itemid.ToString(), itemDefinition.shortname, 
                     itemDefinition.category.ToString(), itemInfo.VanillaStackSize.ToString("N0"), 
-                    GetStackSize(itemDefinition).ToString("N0"));
+                    Mathf.Clamp(GetStackSize(itemDefinition), 0, int.MaxValue).ToString("N0"),
+                    _config.CategoryStackMultipliers[itemDefinition.category.ToString()].ToString());
             }
             
             player.Reply(output.ToString());
@@ -634,6 +635,15 @@ namespace Oxide.Plugins
             )
             {
                 return false;
+            }
+            
+            if (item.info.amountType == ItemDefinition.AmountType.Genetics ||
+                targetItem.info.amountType == ItemDefinition.AmountType.Genetics)
+            {
+                if ((item.instanceData?.dataInt ?? -1) != (targetItem.instanceData?.dataInt ?? -1))
+                {
+                    return false;
+                }
             }
 
             BaseProjectile.Magazine itemMag = 
@@ -792,6 +802,11 @@ namespace Oxide.Plugins
             foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions())
             {
                 if (itemDefinition.condition.enabled && !_config.AllowStackingItemsWithDurability)
+                {
+                    continue;
+                }
+
+                if (itemDefinition.stackable < 0)
                 {
                     continue;
                 }
