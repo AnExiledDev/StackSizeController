@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledGod", "3.1.4")]
+    [Info("Stack Size Controller", "AnExiledGod", "3.2.0")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
@@ -15,10 +15,19 @@ namespace Oxide.Plugins
         private ItemIndex _data;
         private Dictionary<string, int> _vanillaDefaults;
 
+        private readonly List<string> _ignoreList = new List<string>
+        {
+            "water",
+            "water.salt"
+        };
+
         private void Init()
         {
             _config = Config.ReadObject<ConfigData>();
             _data = Interface.Oxide.DataFileSystem.ReadObject<ItemIndex>(nameof(StackSizeController));
+            _vanillaDefaults =
+                Interface.Oxide.DataFileSystem.ReadObject<Dictionary<string, int>>(nameof(StackSizeController) +
+                    "_vanilla-defaults");
             
             if (_config.IsNull<ConfigData>())
             {
@@ -28,34 +37,6 @@ namespace Oxide.Plugins
             }
             
             EnsureConfigIntegrity();
-
-            AddCovalenceCommand("stacksizecontroller.regendatafile", nameof(RegenerateDataFileCommand),
-                "stacksizecontroller.regendatafile");
-            AddCovalenceCommand("stacksizecontroller.setstack", nameof(SetStackCommand),
-                "stacksizecontroller.setstack");
-            AddCovalenceCommand("stacksizecontroller.setstackcat", nameof(SetStackCategoryCommand),
-                "stacksizecontroller.setstackcat");
-            AddCovalenceCommand("stacksizecontroller.setallstacks", nameof(SetAllStacksCommand),
-                "stacksizecontroller.setallstacks");
-            AddCovalenceCommand("stacksizecontroller.itemsearch", nameof(ItemSearchCommand),
-                "stacksizecontroller.itemsearch");
-            AddCovalenceCommand("stacksizecontroller.listcategories", nameof(ListCategoriesCommand),
-                "stacksizecontroller.listcategories");
-            AddCovalenceCommand("stacksizecontroller.listcategoryitems", nameof(ListCategoryItemsCommand),
-                "stacksizecontroller.listcategoryitems");
-        }
-        
-        private void OnServerInitialized()
-        {
-            _vanillaDefaults =
-                Interface.Oxide.DataFileSystem.ReadObject<Dictionary<string, int>>(nameof(StackSizeController) +
-                    "_vanilla-defaults");
-
-            if (_vanillaDefaults.Count == 0)
-            {
-                // Workaround for exception when hotloading
-                MaintainVanillaStackSizes();
-            }
             
             if (_data.IsUnityNull() || _data.ItemCategories.IsUnityNull())
             {
@@ -101,6 +82,29 @@ namespace Oxide.Plugins
                 }
             }
 
+            AddCovalenceCommand("stacksizecontroller.regendatafile", nameof(RegenerateDataFileCommand),
+                "stacksizecontroller.regendatafile");
+            AddCovalenceCommand("stacksizecontroller.setstack", nameof(SetStackCommand),
+                "stacksizecontroller.setstack");
+            AddCovalenceCommand("stacksizecontroller.setstackcat", nameof(SetStackCategoryCommand),
+                "stacksizecontroller.setstackcat");
+            AddCovalenceCommand("stacksizecontroller.setallstacks", nameof(SetAllStacksCommand),
+                "stacksizecontroller.setallstacks");
+            AddCovalenceCommand("stacksizecontroller.itemsearch", nameof(ItemSearchCommand),
+                "stacksizecontroller.itemsearch");
+            AddCovalenceCommand("stacksizecontroller.listcategories", nameof(ListCategoriesCommand),
+                "stacksizecontroller.listcategories");
+            AddCovalenceCommand("stacksizecontroller.listcategoryitems", nameof(ListCategoryItemsCommand),
+                "stacksizecontroller.listcategoryitems");
+        }
+        
+        private void OnServerInitialized()
+        {
+            if (_vanillaDefaults.IsUnityNull() || _vanillaDefaults.Count == 0)
+            {
+                MaintainVanillaStackSizes();
+            }
+            
             SetStackSizes();
         }
 
@@ -773,33 +777,40 @@ namespace Oxide.Plugins
                 customStackInfo = AddItemToIndex(itemDefinition.itemid);
             }
 
-            if (_config.IndividualItemStackHardLimits.ContainsKey(itemDefinition.itemid.ToString()))
-            {
-                return _config.IndividualItemStackHardLimits[itemDefinition.itemid.ToString()];
-            }
-            
+            // Individual Limit set by shortname
             if (_config.IndividualItemStackHardLimits.ContainsKey(itemDefinition.shortname))
             {
                 return _config.IndividualItemStackHardLimits[itemDefinition.shortname];
             }
             
-            if (customStackInfo.CustomStackSize > 0)
+            // Individual Limit set by item id
+            if (_config.IndividualItemStackHardLimits.ContainsKey(itemDefinition.itemid.ToString()))
             {
-                return customStackInfo.CustomStackSize;
+                return _config.IndividualItemStackHardLimits[itemDefinition.itemid.ToString()];
             }
 
+            // Custom stack exists
+            if (customStackInfo.CustomStackSize > 0)
+            {
+                return Mathf.RoundToInt(customStackInfo.CustomStackSize * _config.GlobalStackMultiplier);
+            }
+
+            // Individual Multiplier set by shortname
             int stackable = _vanillaDefaults[itemDefinition.shortname];
             if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.shortname))
             {
                 return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.shortname]);
             }
             
+            // Individual Multiplier set by item id
             if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.itemid.ToString()))
             {
                 return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.itemid.ToString()]);
             }
 
-            if (_config.CategoryStackMultipliers.ContainsKey(itemDefinition.category.ToString()))
+            // Category stack multiplier defined
+            if (_config.CategoryStackMultipliers.ContainsKey(itemDefinition.category.ToString()) &&
+                _config.CategoryStackMultipliers[itemDefinition.category.ToString()] > 1.0f)
             {
                 return Mathf.RoundToInt(
                     stackable * _config.CategoryStackMultipliers[itemDefinition.category.ToString()]);
@@ -810,7 +821,9 @@ namespace Oxide.Plugins
 
         private int GetVanillaStackSize(ItemDefinition itemDefinition)
         {
-            return _vanillaDefaults[itemDefinition.shortname];
+            return _vanillaDefaults.ContainsKey(itemDefinition.shortname)
+                ? _vanillaDefaults[itemDefinition.shortname]
+                : itemDefinition.stackable;
         }
 
         private void SetStackSizes()
@@ -822,7 +835,7 @@ namespace Oxide.Plugins
                     continue;
                 }
 
-                if (itemDefinition.stackable < 0)
+                if (_ignoreList.Contains(itemDefinition.shortname))
                 {
                     continue;
                 }
