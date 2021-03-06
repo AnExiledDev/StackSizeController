@@ -100,9 +100,7 @@ namespace Oxide.Plugins
                 // Workaround for exception when hotloading
                 MaintainVanillaStackSizes();
             }
-            
-            MaintainVanillaStackSizes(true);
-            
+
             SetStackSizes();
         }
         
@@ -116,16 +114,12 @@ namespace Oxide.Plugins
         {
             Puts("Ensuring VanillaStackSize integrity.");
 
-            MaintainVanillaStackSizes();
+            MaintainVanillaStackSizes(true);
             UpdateItemIndex();
-            SaveData();
         }
 
         private void Unloaded()
         {
-            SaveConfig();
-            SaveData();
-
             if (_config.RevertStackSizesToVanillaOnUnload)
             {
                 RevertStackSizes();
@@ -141,9 +135,15 @@ namespace Oxide.Plugins
             public bool HidePrefixWithPluginNameInMessages;
 
             public float GlobalStackMultiplier = 1;
-            public Dictionary<string, float> CategoryStackMultipliers = GetCategoriesAndDefaults();
-            public Dictionary<int, float> IndividualItemStackMultipliers = new Dictionary<int, float>();
-            public Dictionary<int, int> IndividualItemStackHardLimits = new Dictionary<int, int>();
+            public Dictionary<string, float> CategoryStackMultipliers = GetCategoriesAndDefaults(1)
+                .ToDictionary(k => k.Key, 
+                    k => Convert.ToSingle(k.Value));
+            public Dictionary<string, float> IndividualItemStackMultipliers = new Dictionary<string, float>();
+            
+            public Dictionary<string, int> CategoryStackHardLimits = GetCategoriesAndDefaults(0)
+                    .ToDictionary(x => x.Key, 
+                        x => Convert.ToInt32(x.Value));
+            public Dictionary<string, int> IndividualItemStackHardLimits = new Dictionary<string, int>();
             
             public VersionNumber VersionNumber;
         }
@@ -187,17 +187,22 @@ namespace Oxide.Plugins
                 _config.GlobalStackMultiplier = configDefault.GlobalStackMultiplier;
             }
             
-            if (_config.CategoryStackMultipliers.IsNull<bool>())
+            if (_config.CategoryStackMultipliers.IsNull<Dictionary<string, float>>())
             {
                 _config.CategoryStackMultipliers = configDefault.CategoryStackMultipliers;
             }
             
-            if (_config.IndividualItemStackMultipliers.IsNull<bool>())
+            if (_config.IndividualItemStackMultipliers.IsNull<Dictionary<string, int>>())
             {
                 _config.IndividualItemStackMultipliers = configDefault.IndividualItemStackMultipliers;
             }
             
-            if (_config.IndividualItemStackHardLimits.IsNull<bool>())
+            if (_config.CategoryStackHardLimits.IsNull<Dictionary<string, float>>())
+            {
+                _config.IndividualItemStackHardLimits = configDefault.IndividualItemStackHardLimits;
+            }
+            
+            if (_config.IndividualItemStackHardLimits.IsNull<Dictionary<string, int>>())
             {
                 _config.IndividualItemStackHardLimits = configDefault.IndividualItemStackHardLimits;
             }
@@ -209,6 +214,70 @@ namespace Oxide.Plugins
         private ConfigData GetDefaultConfig()
         {
             return new ConfigData();
+        }
+
+        private void UpdateIndividualItemStackMultiplier(int itemId, float multiplier)
+        {
+            if (_config.IndividualItemStackMultipliers.ContainsKey(itemId.ToString()))
+            {
+                _config.IndividualItemStackMultipliers[itemId.ToString()] = multiplier;
+                    
+                SaveConfig();
+
+                return;
+            }
+                
+            _config.IndividualItemStackMultipliers.Add(GetIndexedItem(itemId).Shortname, multiplier);
+            
+            SaveConfig();
+        }
+        
+        private void UpdateIndividualItemStackMultiplier(string shortname, float multiplier)
+        {
+            if (_config.IndividualItemStackMultipliers.ContainsKey(shortname))
+            {
+                _config.IndividualItemStackMultipliers[shortname] = multiplier;
+                    
+                SaveConfig();
+
+                return;
+            }
+                
+            _config.IndividualItemStackMultipliers.Add(shortname, multiplier);
+            
+            SaveConfig();
+        }
+
+        private void UpdateIndividualItemHardLimit(int itemId, int stackLimit)
+        {
+            if (_config.IndividualItemStackMultipliers.ContainsKey(itemId.ToString()))
+            {
+                _config.IndividualItemStackHardLimits[itemId.ToString()] = stackLimit;
+                    
+                SaveConfig();
+
+                return;
+            }
+                
+            _config.IndividualItemStackHardLimits.Add(GetIndexedItem(itemId).Shortname, stackLimit);
+            
+            SaveConfig();
+        }
+        
+        private void UpdateIndividualItemHardLimit(string shortname, int stackLimit)
+        {
+            if (_config.IndividualItemStackMultipliers.ContainsKey(shortname))
+            {
+                _config.IndividualItemStackHardLimits[shortname] = stackLimit;
+                    
+                SaveConfig();
+
+                return;
+            }
+                
+            _config.IndividualItemStackHardLimits.Add(shortname, stackLimit);
+            
+            SaveConfig();
         }
         
         #endregion
@@ -284,10 +353,12 @@ namespace Oxide.Plugins
                         ItemId = itemDefinition.itemid,
                         Shortname = itemDefinition.shortname,
                         HasDurability = itemDefinition.condition.enabled,
-                        VanillaStackSize = itemDefinition.stackable,
+                        VanillaStackSize = GetVanillaStackSize(itemDefinition),
                         CustomStackSize = 0
                     });
             }
+
+            _data.VersionNumber = Version;
             
             SaveData();
         }
@@ -310,6 +381,8 @@ namespace Oxide.Plugins
                         });
                 }
             }
+
+            SaveData();
         }
         
         private ItemInfo AddItemToIndex(int itemId)
@@ -327,9 +400,27 @@ namespace Oxide.Plugins
             
             _data.ItemCategories[itemDefinition.category.ToString()].Add(item);
 
+            SaveData();
+
             return item;
         }
 
+        private ItemInfo GetIndexedItem(int itemId)
+        {
+            ItemInfo indexedItem = null;
+            foreach (List<ItemInfo> itemInfo in _data.ItemCategories.Values)
+            {
+                indexedItem = itemInfo.Find(x => x.ItemId == itemId);
+
+                if (indexedItem != null)
+                {
+                    break;
+                }
+            }
+
+            return indexedItem;
+        }
+        
         private ItemInfo GetIndexedItem(ItemCategory itemCategory, int itemId)
         {
             ItemInfo itemInfo = _data.ItemCategories[itemCategory.ToString()].First(item => item.ItemId == itemId) ??
@@ -338,39 +429,29 @@ namespace Oxide.Plugins
             return itemInfo;
         }
 
-        private void MaintainVanillaStackSizes(bool refreshDataFileOnly = false)
+        private void MaintainVanillaStackSizes(bool refreshDataFile = false)
         {
-            if (refreshDataFileOnly)
+            SortedDictionary<string, int> vanillaStackSizes = new SortedDictionary<string, int>();
+
+            foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions())
             {
-                foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions())
+                vanillaStackSizes.Add(itemDefinition.shortname, itemDefinition.stackable);
+
+                if (refreshDataFile)
                 {
                     ItemInfo existingItemInfo = _data.ItemCategories[itemDefinition.category.ToString()]
                         .Find(itemInfo => itemInfo.ItemId == itemDefinition.itemid);
                 
                     existingItemInfo.VanillaStackSize = GetVanillaStackSize(itemDefinition);
                 }
-
-                SaveData();
-
-                return;
-            }
-            
-            SortedDictionary<string, int> vanillaStackSizes = new SortedDictionary<string, int>();
-
-            foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions())
-            {
-                vanillaStackSizes.Add(itemDefinition.shortname, itemDefinition.stackable);
-                
-                ItemInfo existingItemInfo = _data.ItemCategories[itemDefinition.category.ToString()]
-                    .Find(itemInfo => itemInfo.ItemId == itemDefinition.itemid);
-                
-                existingItemInfo.VanillaStackSize = itemDefinition.stackable;
             }
             
             Interface.Oxide.DataFileSystem.WriteObject(nameof(StackSizeController) + "_vanilla-defaults",
                 vanillaStackSizes);
 
             _vanillaDefaults = new Dictionary<string, int>(vanillaStackSizes);
+
+            SaveData();
         }
 
         #endregion
@@ -409,41 +490,16 @@ namespace Oxide.Plugins
 
             if (stackSizeString.Substring(stackSizeString.Length - 1) == "x")
             {
-                if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.itemid))
-                {
-                    _config.IndividualItemStackMultipliers[itemDefinition.itemid] =
-                        Convert.ToInt32(stackSizeString.TrimEnd('x'));
-                    
-                    SaveConfig();
-                    player.Reply(GetMessage("OperationSuccessful", player.Id));
-
-                    return;
-                }
-                
-                _config.IndividualItemStackMultipliers.Add(itemDefinition.itemid,
-                    Convert.ToInt32(stackSizeString.TrimEnd('x')));
-                
-                SaveConfig();
+                UpdateIndividualItemStackMultiplier(itemDefinition.itemid,
+                    Convert.ToSingle(stackSizeString.TrimEnd('x')));
+                SetStackSizes();
                 player.Reply(GetMessage("OperationSuccessful", player.Id));
 
                 return;
             }
 
-            if (_config.IndividualItemStackHardLimits.ContainsKey(itemDefinition.itemid))
-            {
-                _config.IndividualItemStackHardLimits[itemDefinition.itemid] =
-                    Convert.ToInt32(stackSizeString.TrimEnd('x'));
-                
-                SaveConfig();
-                player.Reply(GetMessage("OperationSuccessful", player.Id));
-                
-                return;
-            }
-            
-            _config.IndividualItemStackHardLimits.Add(itemDefinition.itemid,
-                Convert.ToInt32(stackSizeString.TrimEnd('x')));
-
-            SaveConfig();
+            UpdateIndividualItemHardLimit(itemDefinition.itemid, Convert.ToInt32(stackSizeString.TrimEnd('x')));
+            SetStackSizes();
             player.Reply(GetMessage("OperationSuccessful", player.Id));
         }
 
@@ -461,6 +517,7 @@ namespace Oxide.Plugins
             }
 
             SaveConfig();
+            SetStackSizes();
             
             player.Reply(GetMessage("OperationSuccessful", player.Id));
         }
@@ -480,10 +537,10 @@ namespace Oxide.Plugins
                 player.Reply(GetMessage("InvalidCategory", player.Id));
             }
             
-            string stackSizeString = args[1];
-            _config.CategoryStackMultipliers[itemCategory.ToString()] = Convert.ToInt32(stackSizeString.TrimEnd('x'));
+            _config.CategoryStackMultipliers[itemCategory.ToString()] = Convert.ToInt32(args[1].TrimEnd('x'));
 
             SaveConfig();
+            SetStackSizes();
             
             player.Reply(GetMessage("OperationSuccessful", player.Id));
         }
@@ -696,9 +753,14 @@ namespace Oxide.Plugins
                 customStackInfo = AddItemToIndex(itemDefinition.itemid);
             }
 
-            if (_config.IndividualItemStackHardLimits.ContainsKey(itemDefinition.itemid))
+            if (_config.IndividualItemStackHardLimits.ContainsKey(itemDefinition.itemid.ToString()))
             {
-                return _config.IndividualItemStackHardLimits[itemDefinition.itemid];
+                return _config.IndividualItemStackHardLimits[itemDefinition.itemid.ToString()];
+            }
+            
+            if (_config.IndividualItemStackHardLimits.ContainsKey(itemDefinition.shortname))
+            {
+                return _config.IndividualItemStackHardLimits[itemDefinition.shortname];
             }
             
             if (customStackInfo.CustomStackSize > 0)
@@ -707,11 +769,16 @@ namespace Oxide.Plugins
             }
 
             int stackable = _vanillaDefaults[itemDefinition.shortname];
-            if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.itemid))
+            if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.shortname))
             {
-                return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.itemid]);
+                return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.shortname]);
             }
             
+            if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.itemid.ToString()))
+            {
+                return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.itemid.ToString()]);
+            }
+
             if (_config.CategoryStackMultipliers.ContainsKey(itemDefinition.category.ToString()))
             {
                 return Mathf.RoundToInt(
@@ -747,13 +814,13 @@ namespace Oxide.Plugins
             }
         }
 
-        private static Dictionary<string, float> GetCategoriesAndDefaults()
+        private static Dictionary<string, object> GetCategoriesAndDefaults(object defaultValue)
         {
-            Dictionary<string, float> categoryDefaults = new Dictionary<string, float>();
+            Dictionary<string, object> categoryDefaults = new Dictionary<string, object>();
             
             foreach (string category in Enum.GetNames(typeof(ItemCategory)))
             {
-                categoryDefaults.Add(category, 1);
+                categoryDefaults.Add(category, defaultValue);
             }
 
             return categoryDefaults;
