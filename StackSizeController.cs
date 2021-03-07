@@ -701,11 +701,11 @@ namespace Oxide.Plugins
             {
                 foreach (Item containedItem in targetItem.contents.itemList)
                 {
-                    targetItem.parent.playerOwner.GiveItem(ItemManager.CreateByItemID(containedItem.info.itemid, 
+                    item.parent.playerOwner.GiveItem(ItemManager.CreateByItemID(containedItem.info.itemid, 
                         containedItem.amount));
                 }
             }
-
+            
             return null;
         }
         
