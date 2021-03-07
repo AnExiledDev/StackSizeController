@@ -655,6 +655,16 @@ namespace Oxide.Plugins
                     return false;
                 }
             }
+            
+            // Return contents
+            if (targetItem.contents?.itemList.Count > 0)
+            {
+                foreach (Item containedItem in targetItem.contents.itemList)
+                {
+                    item.parent.playerOwner.GiveItem(ItemManager.CreateByItemID(containedItem.info.itemid, 
+                        containedItem.amount));
+                }
+            }
 
             if (_config.DisableDupeFixAndLeaveWeaponMagsAlone)
             {
@@ -695,17 +705,7 @@ namespace Oxide.Plugins
                         chainsaw.ammo));
                 }
             }
-            
-            // Return contents
-            if (targetItem.contents?.itemList.Count > 0)
-            {
-                foreach (Item containedItem in targetItem.contents.itemList)
-                {
-                    item.parent.playerOwner.GiveItem(ItemManager.CreateByItemID(containedItem.info.itemid, 
-                        containedItem.amount));
-                }
-            }
-            
+
             return null;
         }
         
