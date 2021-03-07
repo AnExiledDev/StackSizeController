@@ -13,6 +13,7 @@
 
 ## Console Commands
 ### **stacksizecontroller.itemsearch**
+##### **Permission:** `stacksizecontroller.itemsearch` (Only needed if used in-game)
 ##### **Usage:** `stacksizecontroller.itemsearch <full or partial item name>`
 ##### **Parameter #1:** `full or partial item name` Can be any length, however I suggest you use 2, 3 or more characters to avoid potential slowdowns.
 ##### **Usage Example:** `stacksizecontroller.itemsearch pic` (Result pictured below)
@@ -24,6 +25,7 @@
 ----
 
 ### **stacksizecontroller.listcategories**
+##### **Permission:** `stacksizecontroller.listcategories` (Only needed if used in-game)
 ##### **Usage:** `stacksizecontroller.listcategories`
 ##### **Parameters:** `No Parameters`
 ##### **Usage Example:** `stacksizecontroller.listcategories` (Result pictured below)
@@ -33,6 +35,7 @@
 ----
 
 ### **stacksizecontroller.listcategoryitems**
+##### **Permission:** `stacksizecontroller.listcategoryitems` (Only needed if used in-game)
 ##### **Usage:** `stacksizecontroller.listcategoryitems <exact category name>`
 ##### **Parameter #1:** `exact category name` Must be an exact category name. Use stacksizecontroller.listcategories for help.
 ##### **Usage Example:** `stacksizecontroller.listcategoryitems Weapons`
@@ -42,6 +45,7 @@
 ----
 
 ### **stacksizecontroller.setstack**
+##### **Permission:** `stacksizecontroller.setstack` (Only needed if used in-game)
 ##### **Usage:** `stacksizecontroller.setstack <item shortname or id> <stack limit or multiplier>`
 ##### **Parameter #1:** `Shortname or ID` Use stacksizecontroller.itemsearch if you need help.
 ##### **Parameter #2:** `Stack limit or multiplier` Supplying just a number like "2000" sets that as the max stack limit. Supplying a number immediately followed by an x sets a multiplier, like "20x". Entering "20 x" would cause an error.
@@ -52,6 +56,7 @@
 ----
 
 ### **stacksizecontroller.setstackcat**
+##### **Permission:** `stacksizecontroller.setstackcat` (Only needed if used in-game)
 ##### **Usage:** `stacksizecontroller.setstackcat <category name> <stack multiplier>`
 ##### **Parameter #1:** `category name` Use stacksizecontroller.listcategories if you need help. (Not case sensitive)
 ##### **Parameter #2:** `Stack multiplier` Unlike setstack this only accepts a multiplier, it does not require and will error if it's provided with a non-numeric character.
@@ -62,6 +67,7 @@
 ----
 
 ### **stacksizecontroller.setallstacks**
+##### **Permission:** `stacksizecontroller.setallstacks` (Only needed if used in-game)
 ##### **Usage:** `stacksizecontroller.setallstacks <stack multiplier>`
 ##### **Parameter #1:** `Stack multiplier` Unlike setstack this only accepts a multiplier, it does not require and will error if it's provided with a non-numeric character.
 ##### **Usage Example:** `stacksizecontroller.setallstacks 10`
@@ -71,6 +77,7 @@
 ----
 
 ### **stacksizecontroller.regendatafile**
+##### **Permission:** `stacksizecontroller.regendatafile` (Only needed if used in-game)
 ##### **Usage:** `stacksizecontroller.regendatafile`
 ##### **Parameters:** `No Parameters`
 ##### **Usage Example:** `stacksizecontroller.regendatafile`
