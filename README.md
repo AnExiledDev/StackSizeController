@@ -1,4 +1,3 @@
-**Description looked better in my notepad. Improvements to readability to come soon.**
 ## Feature Highlights
 * Allows setting stack sizes for nearly every item in Rust.
 * Items are catagorized and automatically populated in the data file.
