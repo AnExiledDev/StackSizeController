@@ -1,4 +1,3 @@
-**Description looked better in my notepad. Improvements to readability to come soon.**
 ## Feature Highlights
 * Allows setting stack sizes for nearly every item in Rust.
 * Items are catagorized and automatically populated in the data file.
@@ -87,32 +86,53 @@
   "RevertStackSizesToVanillaOnUnload": true,
   "AllowStackingItemsWithDurability": true,
   "HidePrefixWithPluginNameInMessages": false,
-  "GlobalStackMultiplier": 1,
+  "DisableDupeFixAndLeaveWeaponMagsAlone": false,
+  "GlobalStackMultiplier": 1.0,
   "CategoryStackMultipliers": {
-    "Weapon": 1,
-    "Construction": 1,
-    "Items": 1,
-    "Resources": 1,
-    "Attire": 1,
-    "Tool": 1,
-    "Medical": 1,
-    "Food": 1,
-    "Ammunition": 1,
-    "Traps": 1,
-    "Misc": 1,
-    "All": 1,
-    "Common": 1,
-    "Component": 1,
-    "Search": 1,
-    "Favourite": 1,
-    "Electrical": 1,
-    "Fun": 1
+    "Weapon": 1.0,
+    "Construction": 1.0,
+    "Items": 1.0,
+    "Resources": 1.0,
+    "Attire": 1.0,
+    "Tool": 1.0,
+    "Medical": 1.0,
+    "Food": 1.0,
+    "Ammunition": 1.0,
+    "Traps": 1.0,
+    "Misc": 1.0,
+    "All": 1.0,
+    "Common": 1.0,
+    "Component": 1.0,
+    "Search": 1.0,
+    "Favourite": 1.0,
+    "Electrical": 1.0,
+    "Fun": 1.0
   },
   "IndividualItemStackMultipliers": {},
+  "CategoryStackHardLimits": {
+    "Weapon": 0,
+    "Construction": 0,
+    "Items": 0,
+    "Resources": 0,
+    "Attire": 0,
+    "Tool": 0,
+    "Medical": 0,
+    "Food": 0,
+    "Ammunition": 0,
+    "Traps": 0,
+    "Misc": 0,
+    "All": 0,
+    "Common": 0,
+    "Component": 0,
+    "Search": 0,
+    "Favourite": 0,
+    "Electrical": 0,
+    "Fun": 0
+  },
   "IndividualItemStackHardLimits": {},
   "VersionNumber": {
     "Major": 3,
-    "Minor": 0,
+    "Minor": 2,
     "Patch": 0
   }
 }
@@ -124,36 +144,57 @@
   "RevertStackSizesToVanillaOnUnload": true,
   "AllowStackingItemsWithDurability": true,
   "HidePrefixWithPluginNameInMessages": false,
+  "DisableDupeFixAndLeaveWeaponMagsAlone": false,
   "GlobalStackMultiplier": 1,
   "CategoryStackMultipliers": {
-    "Weapon": 1,
-    "Construction": 1,
-    "Items": 5,
-    "Resources": 12,
-    "Attire": 1,
-    "Tool": 1,
-    "Medical": 1,
-    "Food": 1,
-    "Ammunition": 1,
-    "Traps": 1,
-    "Misc": 1,
-    "All": 1,
-    "Common": 1,
-    "Component": 1,
-    "Search": 1,
-    "Favourite": 1,
-    "Electrical": 1,
-    "Fun": 1
+    "Weapon": 10.0,
+    "Construction": 1.0,
+    "Items": 1.0,
+    "Resources": 1.0,
+    "Attire": 1.0,
+    "Tool": 1.0,
+    "Medical": 1.0,
+    "Food": 1.0,
+    "Ammunition": 1.0,
+    "Traps": 1.0,
+    "Misc": 1.0,
+    "All": 1.0,
+    "Common": 1.0,
+    "Component": 1.0,
+    "Search": 1.0,
+    "Favourite": 1.0,
+    "Electrical": 1.0,
+    "Fun": 1.0
   },
   "IndividualItemStackMultipliers": {
     "-566907190": 10
+  },
+  "CategoryStackHardLimits": {
+    "Weapon": 1,
+    "Construction": 0,
+    "Items": 0,
+    "Resources": 50000,
+    "Attire": 0,
+    "Tool": 0,
+    "Medical": 15,
+    "Food": 0,
+    "Ammunition": 0,
+    "Traps": 0,
+    "Misc": 0,
+    "All": 0,
+    "Common": 0,
+    "Component": 0,
+    "Search": 0,
+    "Favourite": 0,
+    "Electrical": 0,
+    "Fun": 0
   },
   "IndividualItemStackHardLimits": {
     "-586342290": 3
   },
   "VersionNumber": {
     "Major": 3,
-    "Minor": 0,
+    "Minor": 2,
     "Patch": 0
   }
 }
@@ -162,9 +203,11 @@
 - `RevertStackSizesToVanillaOnUnload` - If true; item stacksizes are returned to vanilla defaults on plugin unload.
 - `AllowStackingItemsWithDurability` - If enabled, items with durability such as weapons can be stacked if they are at full durability. If disabled items with durability can't be stacked at all. (Contents, attachments and ammo are all returned to the player)
 - `HidePrefixWithPluginNameInMessages` - Currently does nothing. Future version will hide the prefix from chat messages in-game.
+- `DisableDupeFixAndLeaveWeaponMagsAlone` - Disables the dupe fix, which removes ammo from weapons when stacking, with this disabled players can dupe any ammo slowly. 
 - `GlobalStackMultiplier` - Multiplies all item stacks by this value.
 - `CategoryStackMultipliers` - Each category will multiply stacks for those items by the defined amount.
 - `IndividualItemStackMultipliers` - Accepts "item_id": multiplier. Use stacksizecontroller.itemsearch to find the item id easily.
+- `CategoryStackHardLimits` - Each item in this category will be set to this hard stack limit, if the value is above 0.
 - `IndividualItemStackHardLimits` - Accepts "item_id": hard limit. Use stacksizecontroller.itemsearch to find the item id easily.
 
 ## Data

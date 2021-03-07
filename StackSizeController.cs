@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledGod", "3.1.4")]
+    [Info("Stack Size Controller", "AnExiledGod", "3.2.0")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
@@ -15,10 +15,19 @@ namespace Oxide.Plugins
         private ItemIndex _data;
         private Dictionary<string, int> _vanillaDefaults;
 
+        private readonly List<string> _ignoreList = new List<string>
+        {
+            "water",
+            "water.salt"
+        };
+
         private void Init()
         {
             _config = Config.ReadObject<ConfigData>();
             _data = Interface.Oxide.DataFileSystem.ReadObject<ItemIndex>(nameof(StackSizeController));
+            _vanillaDefaults =
+                Interface.Oxide.DataFileSystem.ReadObject<Dictionary<string, int>>(nameof(StackSizeController) +
+                    "_vanilla-defaults");
             
             if (_config.IsNull<ConfigData>())
             {
@@ -91,41 +100,24 @@ namespace Oxide.Plugins
         
         private void OnServerInitialized()
         {
-            _vanillaDefaults =
-                Interface.Oxide.DataFileSystem.ReadObject<Dictionary<string, int>>(nameof(StackSizeController) +
-                    "_vanilla-defaults");
-
-            if (_vanillaDefaults.Count == 0)
+            if (_vanillaDefaults.IsUnityNull() || _vanillaDefaults.Count == 0)
             {
-                // Workaround for exception when hotloading
                 MaintainVanillaStackSizes();
             }
             
-            MaintainVanillaStackSizes(true);
-            
             SetStackSizes();
         }
-        
-        private void OnServerSave()
-        {
-            SaveConfig();
-            SaveData();
-        }
-        
+
         private void OnTerrainInitialized()
         {
             Puts("Ensuring VanillaStackSize integrity.");
 
-            MaintainVanillaStackSizes();
+            MaintainVanillaStackSizes(true);
             UpdateItemIndex();
-            SaveData();
         }
 
         private void Unloaded()
         {
-            SaveConfig();
-            SaveData();
-
             if (_config.RevertStackSizesToVanillaOnUnload)
             {
                 RevertStackSizes();
@@ -139,11 +131,18 @@ namespace Oxide.Plugins
             public bool RevertStackSizesToVanillaOnUnload = true;
             public bool AllowStackingItemsWithDurability = true;
             public bool HidePrefixWithPluginNameInMessages;
+            public bool DisableDupeFixAndLeaveWeaponMagsAlone;
 
-            public int GlobalStackMultiplier = 1;
-            public Dictionary<string, int> CategoryStackMultipliers = GetCategoriesAndDefaults();
-            public Dictionary<int, int> IndividualItemStackMultipliers = new Dictionary<int, int>();
-            public Dictionary<int, int> IndividualItemStackHardLimits = new Dictionary<int, int>();
+            public float GlobalStackMultiplier = 1;
+            public Dictionary<string, float> CategoryStackMultipliers = GetCategoriesAndDefaults(1)
+                .ToDictionary(k => k.Key, 
+                    k => Convert.ToSingle(k.Value));
+            public Dictionary<string, float> IndividualItemStackMultipliers = new Dictionary<string, float>();
+            
+            public Dictionary<string, int> CategoryStackHardLimits = GetCategoriesAndDefaults(0)
+                    .ToDictionary(x => x.Key, 
+                        x => Convert.ToInt32(x.Value));
+            public Dictionary<string, int> IndividualItemStackHardLimits = new Dictionary<string, int>();
             
             public VersionNumber VersionNumber;
         }
@@ -181,23 +180,33 @@ namespace Oxide.Plugins
             {
                 _config.HidePrefixWithPluginNameInMessages = configDefault.HidePrefixWithPluginNameInMessages;
             }
+
+            if (_config.DisableDupeFixAndLeaveWeaponMagsAlone.IsNull<bool>())
+            {
+                _config.DisableDupeFixAndLeaveWeaponMagsAlone = configDefault.DisableDupeFixAndLeaveWeaponMagsAlone;
+            }
             
             if (_config.GlobalStackMultiplier.IsNull<bool>())
             {
                 _config.GlobalStackMultiplier = configDefault.GlobalStackMultiplier;
             }
             
-            if (_config.CategoryStackMultipliers.IsNull<bool>())
+            if (_config.CategoryStackMultipliers.IsNull<Dictionary<string, float>>())
             {
                 _config.CategoryStackMultipliers = configDefault.CategoryStackMultipliers;
             }
             
-            if (_config.IndividualItemStackMultipliers.IsNull<bool>())
+            if (_config.IndividualItemStackMultipliers.IsNull<Dictionary<string, int>>())
             {
                 _config.IndividualItemStackMultipliers = configDefault.IndividualItemStackMultipliers;
             }
             
-            if (_config.IndividualItemStackHardLimits.IsNull<bool>())
+            if (_config.CategoryStackHardLimits.IsNull<Dictionary<string, float>>())
+            {
+                _config.IndividualItemStackHardLimits = configDefault.IndividualItemStackHardLimits;
+            }
+            
+            if (_config.IndividualItemStackHardLimits.IsNull<Dictionary<string, int>>())
             {
                 _config.IndividualItemStackHardLimits = configDefault.IndividualItemStackHardLimits;
             }
@@ -209,6 +218,70 @@ namespace Oxide.Plugins
         private ConfigData GetDefaultConfig()
         {
             return new ConfigData();
+        }
+
+        private void UpdateIndividualItemStackMultiplier(int itemId, float multiplier)
+        {
+            if (_config.IndividualItemStackMultipliers.ContainsKey(itemId.ToString()))
+            {
+                _config.IndividualItemStackMultipliers[itemId.ToString()] = multiplier;
+                    
+                SaveConfig();
+
+                return;
+            }
+                
+            _config.IndividualItemStackMultipliers.Add(GetIndexedItem(itemId).Shortname, multiplier);
+            
+            SaveConfig();
+        }
+        
+        private void UpdateIndividualItemStackMultiplier(string shortname, float multiplier)
+        {
+            if (_config.IndividualItemStackMultipliers.ContainsKey(shortname))
+            {
+                _config.IndividualItemStackMultipliers[shortname] = multiplier;
+                    
+                SaveConfig();
+
+                return;
+            }
+                
+            _config.IndividualItemStackMultipliers.Add(shortname, multiplier);
+            
+            SaveConfig();
+        }
+
+        private void UpdateIndividualItemHardLimit(int itemId, int stackLimit)
+        {
+            if (_config.IndividualItemStackMultipliers.ContainsKey(itemId.ToString()))
+            {
+                _config.IndividualItemStackHardLimits[itemId.ToString()] = stackLimit;
+                    
+                SaveConfig();
+
+                return;
+            }
+                
+            _config.IndividualItemStackHardLimits.Add(GetIndexedItem(itemId).Shortname, stackLimit);
+            
+            SaveConfig();
+        }
+        
+        private void UpdateIndividualItemHardLimit(string shortname, int stackLimit)
+        {
+            if (_config.IndividualItemStackMultipliers.ContainsKey(shortname))
+            {
+                _config.IndividualItemStackHardLimits[shortname] = stackLimit;
+                    
+                SaveConfig();
+
+                return;
+            }
+                
+            _config.IndividualItemStackHardLimits.Add(shortname, stackLimit);
+            
+            SaveConfig();
         }
         
         #endregion
@@ -284,10 +357,12 @@ namespace Oxide.Plugins
                         ItemId = itemDefinition.itemid,
                         Shortname = itemDefinition.shortname,
                         HasDurability = itemDefinition.condition.enabled,
-                        VanillaStackSize = itemDefinition.stackable,
+                        VanillaStackSize = GetVanillaStackSize(itemDefinition),
                         CustomStackSize = 0
                     });
             }
+
+            _data.VersionNumber = Version;
             
             SaveData();
         }
@@ -305,11 +380,13 @@ namespace Oxide.Plugins
                             ItemId = itemDefinition.itemid,
                             Shortname = itemDefinition.shortname,
                             HasDurability = itemDefinition.condition.enabled,
-                            VanillaStackSize = itemDefinition.stackable,
+                            VanillaStackSize = GetVanillaStackSize(itemDefinition),
                             CustomStackSize = 0
                         });
                 }
             }
+
+            SaveData();
         }
         
         private ItemInfo AddItemToIndex(int itemId)
@@ -321,15 +398,33 @@ namespace Oxide.Plugins
                 ItemId = itemId,
                 Shortname = itemDefinition.shortname,
                 HasDurability = itemDefinition.condition.enabled,
-                VanillaStackSize = itemDefinition.stackable,
+                VanillaStackSize = GetVanillaStackSize(itemDefinition),
                 CustomStackSize = 0
             };
             
             _data.ItemCategories[itemDefinition.category.ToString()].Add(item);
 
+            SaveData();
+
             return item;
         }
 
+        private ItemInfo GetIndexedItem(int itemId)
+        {
+            ItemInfo indexedItem = null;
+            foreach (List<ItemInfo> itemInfo in _data.ItemCategories.Values)
+            {
+                indexedItem = itemInfo.Find(x => x.ItemId == itemId);
+
+                if (indexedItem != null)
+                {
+                    break;
+                }
+            }
+
+            return indexedItem;
+        }
+        
         private ItemInfo GetIndexedItem(ItemCategory itemCategory, int itemId)
         {
             ItemInfo itemInfo = _data.ItemCategories[itemCategory.ToString()].First(item => item.ItemId == itemId) ??
@@ -338,33 +433,23 @@ namespace Oxide.Plugins
             return itemInfo;
         }
 
-        private void MaintainVanillaStackSizes(bool refreshDataFileOnly = false)
+        private void MaintainVanillaStackSizes(bool refreshDataFile = false)
         {
-            if (refreshDataFileOnly)
-            {
-                foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions())
-                {
-                    ItemInfo existingItemInfo = _data.ItemCategories[itemDefinition.category.ToString()]
-                        .Find(itemInfo => itemInfo.ItemId == itemDefinition.itemid);
-                
-                    existingItemInfo.VanillaStackSize = GetVanillaStackSize(itemDefinition);
-                }
-
-                SaveData();
-
-                return;
-            }
-            
             SortedDictionary<string, int> vanillaStackSizes = new SortedDictionary<string, int>();
 
             foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions())
             {
                 vanillaStackSizes.Add(itemDefinition.shortname, itemDefinition.stackable);
+
+                if (refreshDataFile)
+                {
+                    ItemInfo existingItemInfo = _data.ItemCategories[itemDefinition.category.ToString()]
+                        .Find(itemInfo => itemInfo.ItemId == itemDefinition.itemid);
                 
-                ItemInfo existingItemInfo = _data.ItemCategories[itemDefinition.category.ToString()]
-                    .Find(itemInfo => itemInfo.ItemId == itemDefinition.itemid);
-                
-                existingItemInfo.VanillaStackSize = itemDefinition.stackable;
+                    existingItemInfo.VanillaStackSize = GetVanillaStackSize(itemDefinition);
+                    
+                    SaveData();
+                }
             }
             
             Interface.Oxide.DataFileSystem.WriteObject(nameof(StackSizeController) + "_vanilla-defaults",
@@ -409,41 +494,16 @@ namespace Oxide.Plugins
 
             if (stackSizeString.Substring(stackSizeString.Length - 1) == "x")
             {
-                if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.itemid))
-                {
-                    _config.IndividualItemStackMultipliers[itemDefinition.itemid] =
-                        Convert.ToInt32(stackSizeString.TrimEnd('x'));
-                    
-                    SaveConfig();
-                    player.Reply(GetMessage("OperationSuccessful", player.Id));
-
-                    return;
-                }
-                
-                _config.IndividualItemStackMultipliers.Add(itemDefinition.itemid,
-                    Convert.ToInt32(stackSizeString.TrimEnd('x')));
-                
-                SaveConfig();
+                UpdateIndividualItemStackMultiplier(itemDefinition.itemid,
+                    Convert.ToSingle(stackSizeString.TrimEnd('x')));
+                SetStackSizes();
                 player.Reply(GetMessage("OperationSuccessful", player.Id));
 
                 return;
             }
 
-            if (_config.IndividualItemStackHardLimits.ContainsKey(itemDefinition.itemid))
-            {
-                _config.IndividualItemStackHardLimits[itemDefinition.itemid] =
-                    Convert.ToInt32(stackSizeString.TrimEnd('x'));
-                
-                SaveConfig();
-                player.Reply(GetMessage("OperationSuccessful", player.Id));
-                
-                return;
-            }
-            
-            _config.IndividualItemStackHardLimits.Add(itemDefinition.itemid,
-                Convert.ToInt32(stackSizeString.TrimEnd('x')));
-
-            SaveConfig();
+            UpdateIndividualItemHardLimit(itemDefinition.shortname, Convert.ToInt32(stackSizeString.TrimEnd('x')));
+            SetStackSizes();
             player.Reply(GetMessage("OperationSuccessful", player.Id));
         }
 
@@ -461,6 +521,7 @@ namespace Oxide.Plugins
             }
 
             SaveConfig();
+            SetStackSizes();
             
             player.Reply(GetMessage("OperationSuccessful", player.Id));
         }
@@ -480,10 +541,10 @@ namespace Oxide.Plugins
                 player.Reply(GetMessage("InvalidCategory", player.Id));
             }
             
-            string stackSizeString = args[1];
-            _config.CategoryStackMultipliers[itemCategory.ToString()] = Convert.ToInt32(stackSizeString.TrimEnd('x'));
+            _config.CategoryStackMultipliers[itemCategory.ToString()] = Convert.ToInt32(args[1].TrimEnd('x'));
 
             SaveConfig();
+            SetStackSizes();
             
             player.Reply(GetMessage("OperationSuccessful", player.Id));
         }
@@ -512,7 +573,7 @@ namespace Oxide.Plugins
                 
                 output.AddRow(itemDefinition.itemid.ToString(), itemDefinition.shortname, 
                     itemDefinition.category.ToString(), itemInfo.VanillaStackSize.ToString("N0"), 
-                    itemInfo.CustomStackSize.ToString("N0"));
+                    Mathf.Clamp(GetStackSize(itemDefinition), 0, int.MaxValue).ToString("N0"));
             }
             
             player.Reply(output.ToString());
@@ -546,7 +607,7 @@ namespace Oxide.Plugins
             }
             
             TextTable output = new TextTable();
-            output.AddColumns("Unique Id", "Shortname", "Category", "Vanilla Stack", "Custom Stack");
+            output.AddColumns("Unique Id", "Shortname", "Category", "Vanilla Stack", "Custom Stack", "Multiplier");
 
             foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions()
                 .Where(itemDefinition => itemDefinition.category == itemCategory))
@@ -555,7 +616,8 @@ namespace Oxide.Plugins
                 
                 output.AddRow(itemDefinition.itemid.ToString(), itemDefinition.shortname, 
                     itemDefinition.category.ToString(), itemInfo.VanillaStackSize.ToString("N0"), 
-                    itemInfo.CustomStackSize.ToString("N0"));
+                    Mathf.Clamp(GetStackSize(itemDefinition), 0, int.MaxValue).ToString("N0"),
+                    _config.CategoryStackMultipliers[itemDefinition.category.ToString()].ToString());
             }
             
             player.Reply(output.ToString());
@@ -584,7 +646,31 @@ namespace Oxide.Plugins
             {
                 return false;
             }
+            
+            if (item.info.amountType == ItemDefinition.AmountType.Genetics ||
+                targetItem.info.amountType == ItemDefinition.AmountType.Genetics)
+            {
+                if ((item.instanceData?.dataInt ?? -1) != (targetItem.instanceData?.dataInt ?? -1))
+                {
+                    return false;
+                }
+            }
+            
+            // Return contents
+            if (targetItem.contents?.itemList.Count > 0)
+            {
+                foreach (Item containedItem in targetItem.contents.itemList)
+                {
+                    item.parent.playerOwner.GiveItem(ItemManager.CreateByItemID(containedItem.info.itemid, 
+                        containedItem.amount));
+                }
+            }
 
+            if (_config.DisableDupeFixAndLeaveWeaponMagsAlone)
+            {
+                return null;
+            }
+                
             BaseProjectile.Magazine itemMag = 
                 targetItem.GetHeldEntity()?.GetComponent<BaseProjectile>()?.primaryMagazine;
             
@@ -619,16 +705,6 @@ namespace Oxide.Plugins
                         chainsaw.ammo));
                 }
             }
-            
-            // Return contents
-            if (targetItem.contents?.itemList.Count > 0)
-            {
-                foreach (Item containedItem in targetItem.contents.itemList)
-                {
-                    targetItem.parent.playerOwner.GiveItem(ItemManager.CreateByItemID(containedItem.info.itemid, 
-                        containedItem.amount));
-                }
-            }
 
             return null;
         }
@@ -642,6 +718,11 @@ namespace Oxide.Plugins
             if (item.IsBlueprint())
             {
                 newItem.blueprintTarget = item.blueprintTarget;
+            }
+            
+            if (_config.DisableDupeFixAndLeaveWeaponMagsAlone)
+            {
+                return newItem;
             }
             
             BaseProjectile.Magazine newItemMag =
@@ -696,33 +777,65 @@ namespace Oxide.Plugins
                 customStackInfo = AddItemToIndex(itemDefinition.itemid);
             }
 
-            if (_config.IndividualItemStackHardLimits.ContainsKey(itemDefinition.itemid))
+            if (_ignoreList.Contains(itemDefinition.shortname))
             {
-                return _config.IndividualItemStackHardLimits[itemDefinition.itemid];
+                return GetVanillaStackSize(itemDefinition);
+            }
+
+            // Individual Limit set by shortname
+            if (_config.IndividualItemStackHardLimits.ContainsKey(itemDefinition.shortname))
+            {
+                return _config.IndividualItemStackHardLimits[itemDefinition.shortname];
             }
             
+            // Individual Limit set by item id
+            if (_config.IndividualItemStackHardLimits.ContainsKey(itemDefinition.itemid.ToString()))
+            {
+                return _config.IndividualItemStackHardLimits[itemDefinition.itemid.ToString()];
+            }
+
+            // Custom stack exists
             if (customStackInfo.CustomStackSize > 0)
             {
-                return customStackInfo.CustomStackSize;
+                return Mathf.RoundToInt(customStackInfo.CustomStackSize * _config.GlobalStackMultiplier);
             }
 
+            // Individual Multiplier set by shortname
             int stackable = _vanillaDefaults[itemDefinition.shortname];
-            if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.itemid))
+            if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.shortname))
             {
-                return stackable * _config.IndividualItemStackMultipliers[itemDefinition.itemid];
+                return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.shortname]);
             }
             
-            if (_config.CategoryStackMultipliers.ContainsKey(itemDefinition.category.ToString()))
+            // Individual Multiplier set by item id
+            if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.itemid.ToString()))
             {
-                return stackable * _config.CategoryStackMultipliers[itemDefinition.category.ToString()];
+                return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.itemid.ToString()]);
+            }
+            
+            // Category stack limit defined
+            if (_config.CategoryStackHardLimits.ContainsKey(itemDefinition.category.ToString()) &&
+                _config.CategoryStackHardLimits[itemDefinition.category.ToString()] > 0)
+            {
+                return _config.CategoryStackHardLimits[itemDefinition.category.ToString()];
             }
 
-            return stackable * _config.GlobalStackMultiplier;
+            // Category stack multiplier defined
+            if (_config.CategoryStackMultipliers.ContainsKey(itemDefinition.category.ToString()) &&
+                _config.CategoryStackMultipliers[itemDefinition.category.ToString()] > 1.0f)
+            {
+                return Mathf.RoundToInt(
+                    stackable * _config.CategoryStackMultipliers[itemDefinition.category.ToString()]);
+            }
+
+            return Mathf.RoundToInt(stackable * _config.GlobalStackMultiplier);
         }
 
         private int GetVanillaStackSize(ItemDefinition itemDefinition)
         {
-            return _vanillaDefaults[itemDefinition.shortname];
+            return _vanillaDefaults.ContainsKey(itemDefinition.shortname)
+                ? _vanillaDefaults[itemDefinition.shortname]
+                : itemDefinition.stackable;
         }
 
         private void SetStackSizes()
@@ -730,6 +843,11 @@ namespace Oxide.Plugins
             foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions())
             {
                 if (itemDefinition.condition.enabled && !_config.AllowStackingItemsWithDurability)
+                {
+                    continue;
+                }
+
+                if (_ignoreList.Contains(itemDefinition.shortname))
                 {
                     continue;
                 }
@@ -746,13 +864,13 @@ namespace Oxide.Plugins
             }
         }
 
-        private static Dictionary<string, int> GetCategoriesAndDefaults()
+        private static Dictionary<string, object> GetCategoriesAndDefaults(object defaultValue)
         {
-            Dictionary<string, int> categoryDefaults = new Dictionary<string, int>();
+            Dictionary<string, object> categoryDefaults = new Dictionary<string, object>();
             
             foreach (string category in Enum.GetNames(typeof(ItemCategory)))
             {
-                categoryDefaults.Add(category, 1);
+                categoryDefaults.Add(category, defaultValue);
             }
 
             return categoryDefaults;
