@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledGod", "3.2.0")]
+    [Info("Stack Size Controller", "AnExiledGod", "3.2.1")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
@@ -57,7 +57,7 @@ namespace Oxide.Plugins
                 Interface.Oxide.DataFileSystem.WriteObject(nameof(StackSizeController) + "_backup",
                     _data);
 
-                if (Interface.Oxide.DataFileSystem.ExistsDatafile(nameof(StackSizeController) + "_backup"))
+                if (Interface.Oxide.DataFileSystem.ExistsDatafile(nameof(StackSizeController)))
                 {
                     foreach (KeyValuePair<string, List<ItemInfo>> items in _data.ItemCategories)
                     {
@@ -720,6 +720,27 @@ namespace Oxide.Plugins
                 newItem.blueprintTarget = item.blueprintTarget;
             }
             
+            if (item.info.amountType == ItemDefinition.AmountType.Genetics && item.instanceData != null &&
+                item.instanceData.dataInt != 0)
+            {
+                newItem.instanceData = new ProtoBuf.Item.InstanceData()
+                {
+                    dataInt = item.instanceData.dataInt,
+                    ShouldPool = false
+                };
+            }
+            
+            // Remove default contents (fuel, etc)
+            if (newItem.contents?.itemList.Count > 0)
+            {
+                foreach (Item containedItem in item.contents.itemList)
+                {
+                    containedItem.Remove();
+                }
+            }
+            
+            item.MarkDirty();
+            
             if (_config.DisableDupeFixAndLeaveWeaponMagsAlone)
             {
                 return newItem;
@@ -743,18 +764,7 @@ namespace Oxide.Plugins
             {
                 newItem.GetHeldEntity().GetComponent<Chainsaw>().ammo = 0;
             }
-            
-            // Remove default contents (fuel, etc)
-            if (newItem.contents?.itemList.Count > 0)
-            {
-                foreach (Item containedItem in item.contents.itemList)
-                {
-                    containedItem.Remove();
-                }
-            }
-            
-            item.MarkDirty();
-            
+
             return newItem;
         }
 
