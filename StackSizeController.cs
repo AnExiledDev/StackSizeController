@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledGod", "3.2.1")]
+    [Info("Stack Size Controller", "AnExiledGod", "3.2.2")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
@@ -791,7 +791,7 @@ namespace Oxide.Plugins
             {
                 return GetVanillaStackSize(itemDefinition);
             }
-
+            
             // Individual Limit set by shortname
             if (_config.IndividualItemStackHardLimits.ContainsKey(itemDefinition.shortname))
             {
@@ -803,15 +803,15 @@ namespace Oxide.Plugins
             {
                 return _config.IndividualItemStackHardLimits[itemDefinition.itemid.ToString()];
             }
-
+            
             // Custom stack exists
             if (customStackInfo.CustomStackSize > 0)
             {
                 return Mathf.RoundToInt(customStackInfo.CustomStackSize * _config.GlobalStackMultiplier);
             }
-
+            
             // Individual Multiplier set by shortname
-            int stackable = _vanillaDefaults[itemDefinition.shortname];
+            int stackable = _vanillaDefaults.ContainsKey(itemDefinition.shortname) ? _vanillaDefaults[itemDefinition.shortname] : itemDefinition.stackable;
             if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.shortname))
             {
                 return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.shortname]);
@@ -829,7 +829,7 @@ namespace Oxide.Plugins
             {
                 return _config.CategoryStackHardLimits[itemDefinition.category.ToString()];
             }
-
+            
             // Category stack multiplier defined
             if (_config.CategoryStackMultipliers.ContainsKey(itemDefinition.category.ToString()) &&
                 _config.CategoryStackMultipliers[itemDefinition.category.ToString()] > 1.0f)
