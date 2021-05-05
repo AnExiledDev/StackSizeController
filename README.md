@@ -280,3 +280,15 @@
    (... continued)
 ]
 ```
+
+## Developer Hooks
+
+#### OnVendorHeliFuelAdjust
+
+- Called when a heli has spawned at a vendor, and this plugin is about to reset its fuel amount to 100
+- Returning `false` will prevent the fuel from being adjusted
+- Returning `null` will result in the default behavior
+
+```csharp
+bool? OnVendorHeliFuelAdjust(MiniCopter heli)
+```
