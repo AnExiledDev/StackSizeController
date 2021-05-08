@@ -738,12 +738,8 @@ namespace Oxide.Plugins
             }
 
             item.amount -= amount;
-
-            // Maybe not necessary
             newItem.name = item.name;
             newItem.skin = item.skin;
-            newItem._condition = item._condition;
-            newItem._maxCondition = item._maxCondition;
 
             if (item.IsBlueprint())
             {
