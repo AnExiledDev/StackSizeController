@@ -684,7 +684,7 @@ namespace Oxide.Plugins
             {
                 if (itemMag.contents > 0)
                 {
-                    targetItem.GetOwnerPlayer().GiveItem(ItemManager.CreateByItemID(itemMag.ammoType.itemid, 
+                    item.GetOwnerPlayer().GiveItem(ItemManager.CreateByItemID(itemMag.ammoType.itemid, 
                         itemMag.contents));
 
                     itemMag.contents = 0;
@@ -716,7 +716,7 @@ namespace Oxide.Plugins
                     chainsaw.ammo = 0;
                 }
             }
-
+            
             return true;
         }
         
