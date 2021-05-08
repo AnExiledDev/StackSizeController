@@ -635,7 +635,9 @@ namespace Oxide.Plugins
 
         private object CanStackItem(Item item, Item targetItem)
         {
-            if (item.GetOwnerPlayer().IsUnityNull() && targetItem.GetOwnerPlayer().IsUnityNull())
+            if (_config.DisableDupeFixAndLeaveWeaponMagsAlone || 
+                (item.GetOwnerPlayer().IsUnityNull() && targetItem.GetOwnerPlayer().IsUnityNull())
+            )
             {
                 return null;
             }
@@ -672,11 +674,6 @@ namespace Oxide.Plugins
                     item.parent.playerOwner.GiveItem(ItemManager.CreateByItemID(containedItem.info.itemid, 
                         containedItem.amount));
                 }
-            }
-            
-            if (_config.DisableDupeFixAndLeaveWeaponMagsAlone)
-            {
-                return true;
             }
             
             BaseProjectile.Magazine itemMag = 
@@ -725,6 +722,11 @@ namespace Oxide.Plugins
         
         private Item OnItemSplit(Item item, int amount)
         {
+            if (_config.DisableDupeFixAndLeaveWeaponMagsAlone)
+            {
+                return null;
+            }
+
             Item newItem = ItemManager.CreateByItemID(item.info.itemid, amount, item.skin);
             BaseProjectile.Magazine newItemMag =
                 newItem.GetHeldEntity()?.GetComponent<BaseProjectile>()?.primaryMagazine;
@@ -768,11 +770,6 @@ namespace Oxide.Plugins
             }
             
             item.MarkDirty();
-            
-            if (_config.DisableDupeFixAndLeaveWeaponMagsAlone)
-            {
-                return newItem;
-            }
 
             // Remove default ammo
             if (newItemMag != null)
