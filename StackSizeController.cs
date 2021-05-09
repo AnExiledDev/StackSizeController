@@ -351,6 +351,7 @@ namespace Oxide.Plugins
             // Create categories
             foreach (string category in Enum.GetNames(typeof(ItemCategory)))
             {
+                if (category == "All") { continue; }
                 _data.ItemCategories.Add(category, new List<ItemInfo>());
             }
             
