@@ -651,7 +651,7 @@ namespace Oxide.Plugins
                 !item.IsValid() ||
                 item.IsBlueprint() && item.blueprintTarget != targetItem.blueprintTarget ||
                 targetItem.hasCondition && (targetItem.condition < targetItem.info.condition.max - 5) ||
-                _config.PreventStackingDifferentSkins && item.skin != targetItem.skin
+                (_config.PreventStackingDifferentSkins && item.skin != targetItem.skin)
             )
             {
                 return false;
