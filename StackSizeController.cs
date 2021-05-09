@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledGod", "3.3.0")]
+    [Info("Stack Size Controller", "AnExiledGod", "3.3.1")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
@@ -18,7 +18,10 @@ namespace Oxide.Plugins
         private readonly List<string> _ignoreList = new List<string>
         {
             "water",
-            "water.salt"
+            "water.salt",
+            "cardtable",
+            "hat.bunnyhat",
+            "rustige_egg_e"
         };
 
         private void Init()
@@ -260,7 +263,7 @@ namespace Oxide.Plugins
 
         private void UpdateIndividualItemHardLimit(int itemId, int stackLimit)
         {
-            if (_config.IndividualItemStackMultipliers.ContainsKey(itemId.ToString()))
+            if (_config.IndividualItemStackHardLimits.ContainsKey(itemId.ToString()))
             {
                 _config.IndividualItemStackHardLimits[itemId.ToString()] = stackLimit;
                     
@@ -276,7 +279,7 @@ namespace Oxide.Plugins
         
         private void UpdateIndividualItemHardLimit(string shortname, int stackLimit)
         {
-            if (_config.IndividualItemStackMultipliers.ContainsKey(shortname))
+            if (_config.IndividualItemStackHardLimits.ContainsKey(shortname))
             {
                 _config.IndividualItemStackHardLimits[shortname] = stackLimit;
                     
@@ -351,6 +354,8 @@ namespace Oxide.Plugins
             // Create categories
             foreach (string category in Enum.GetNames(typeof(ItemCategory)))
             {
+                if (category == "All") { continue; }
+
                 _data.ItemCategories.Add(category, new List<ItemInfo>());
             }
             
@@ -490,7 +495,7 @@ namespace Oxide.Plugins
             
             ItemDefinition itemDefinition = ItemManager.FindItemDefinition(args[0]);
             string stackSizeString = args[1];
-            
+
             if (itemDefinition == null)
             {
                 player.Reply(GetMessage("InvalidItemShortnameOrId", player.Id));
@@ -633,6 +638,40 @@ namespace Oxide.Plugins
 
         #region Hooks
 
+        // TODO: Investigate merging CanStackItem into CanMoveItem and potential performance issues
+        object CanMoveItem(Item item, PlayerInventory playerLoot, uint targetContainer, int targetSlot, int amount)
+        {
+            if (_config.DisableDupeFixAndLeaveWeaponMagsAlone)
+            {
+                return null;
+            }
+
+            if (item.contents?.itemList.Count > 0)
+            {
+                foreach (Item containedItem in item.contents.itemList)
+                {
+                    item.parent.AddItem(containedItem.info, containedItem.amount, containedItem.skin);
+                }
+
+                item.contents.Clear();
+            }
+
+            Item targetItem = item.parent.GetSlot(targetSlot);
+
+            // Return contents
+            if (targetItem?.contents?.itemList.Count > 0)
+            {
+                foreach (Item containedItem in targetItem.contents.itemList)
+                {
+                    targetItem.parent.AddItem(containedItem.info, containedItem.amount, containedItem.skin);
+                }
+
+                targetItem.contents.Clear();
+            }
+
+            return null;
+        }
+
         private object CanStackItem(Item item, Item targetItem)
         {
             if (_config.DisableDupeFixAndLeaveWeaponMagsAlone || 
@@ -665,17 +704,7 @@ namespace Oxide.Plugins
                     return false;
                 }
             }
-            
-            // Return contents
-            if (targetItem.contents?.itemList.Count > 0)
-            {
-                foreach (Item containedItem in targetItem.contents.itemList)
-                {
-                    item.parent.playerOwner.GiveItem(ItemManager.CreateByItemID(containedItem.info.itemid, 
-                        containedItem.amount));
-                }
-            }
-            
+
             BaseProjectile.Magazine itemMag = 
                 targetItem.GetHeldEntity()?.GetComponent<BaseProjectile>()?.primaryMagazine;
             
@@ -684,8 +713,7 @@ namespace Oxide.Plugins
             {
                 if (itemMag.contents > 0)
                 {
-                    item.GetOwnerPlayer().GiveItem(ItemManager.CreateByItemID(itemMag.ammoType.itemid, 
-                        itemMag.contents));
+                    item.parent.AddItem(itemMag.ammoType, itemMag.contents);
 
                     itemMag.contents = 0;
                 }
@@ -697,8 +725,7 @@ namespace Oxide.Plugins
 
                 if (flameThrower.ammo > 0)
                 {
-                    item.GetOwnerPlayer().GiveItem(ItemManager.CreateByItemID(flameThrower.fuelType.itemid, 
-                        flameThrower.ammo));
+                    item.parent.AddItem(flameThrower.fuelType, flameThrower.ammo);
 
                     flameThrower.ammo = 0;
                 }
@@ -710,8 +737,7 @@ namespace Oxide.Plugins
 
                 if (chainsaw.ammo > 0)
                 {
-                    item.GetOwnerPlayer().GiveItem(ItemManager.CreateByItemID(chainsaw.fuelType.itemid, 
-                        chainsaw.ammo));
+                    item.parent.AddItem(chainsaw.fuelType, chainsaw.ammo);
 
                     chainsaw.ammo = 0;
                 }
