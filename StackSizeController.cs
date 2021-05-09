@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledGod", "3.3.0")]
+    [Info("Stack Size Controller", "AnExiledGod", "3.3.1")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
@@ -18,7 +18,10 @@ namespace Oxide.Plugins
         private readonly List<string> _ignoreList = new List<string>
         {
             "water",
-            "water.salt"
+            "water.salt",
+            "cardtable",
+            "hat.bunnyhat",
+            "rustige_egg_e"
         };
 
         private void Init()
@@ -352,6 +355,7 @@ namespace Oxide.Plugins
             foreach (string category in Enum.GetNames(typeof(ItemCategory)))
             {
                 if (category == "All") { continue; }
+
                 _data.ItemCategories.Add(category, new List<ItemInfo>());
             }
             
