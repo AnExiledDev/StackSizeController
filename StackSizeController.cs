@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledGod", "3.2.2")]
+    [Info("Stack Size Controller", "AnExiledGod", "3.3.0")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
@@ -130,6 +130,7 @@ namespace Oxide.Plugins
         {
             public bool RevertStackSizesToVanillaOnUnload = true;
             public bool AllowStackingItemsWithDurability = true;
+            public bool PreventStackingDifferentSkins;
             public bool HidePrefixWithPluginNameInMessages;
             public bool DisableDupeFixAndLeaveWeaponMagsAlone;
 
@@ -175,7 +176,12 @@ namespace Oxide.Plugins
             {
                 _config.AllowStackingItemsWithDurability = configDefault.AllowStackingItemsWithDurability;
             }
-            
+
+            if (_config.PreventStackingDifferentSkins.IsNull<bool>())
+            {
+                _config.PreventStackingDifferentSkins = configDefault.PreventStackingDifferentSkins;
+            }
+
             if (_config.HidePrefixWithPluginNameInMessages.IsNull<bool>())
             {
                 _config.HidePrefixWithPluginNameInMessages = configDefault.HidePrefixWithPluginNameInMessages;
@@ -629,19 +635,23 @@ namespace Oxide.Plugins
 
         private object CanStackItem(Item item, Item targetItem)
         {
-            if (item.GetOwnerPlayer().IsUnityNull())
+            if (_config.DisableDupeFixAndLeaveWeaponMagsAlone || 
+                (item.GetOwnerPlayer().IsUnityNull() && targetItem.GetOwnerPlayer().IsUnityNull())
+            )
             {
                 return null;
             }
             
+            // Duplicating all game checks since we're overriding them by returning true
             if (
                 item == targetItem ||
                 item.info.stackable <= 1 ||
+                targetItem.info.stackable <= 1 ||
                 item.info.itemid != targetItem.info.itemid ||
                 !item.IsValid() ||
-                (item.IsBlueprint() && item.blueprintTarget != targetItem.blueprintTarget) ||
-                (item.hasCondition && (item.condition != item.info.condition.max || 
-                                      targetItem.condition != targetItem.info.condition.max))
+                item.IsBlueprint() && item.blueprintTarget != targetItem.blueprintTarget ||
+                targetItem.hasCondition && (targetItem.condition < targetItem.info.condition.max - 5) ||
+                (_config.PreventStackingDifferentSkins && item.skin != targetItem.skin)
             )
             {
                 return false;
@@ -665,12 +675,7 @@ namespace Oxide.Plugins
                         containedItem.amount));
                 }
             }
-
-            if (_config.DisableDupeFixAndLeaveWeaponMagsAlone)
-            {
-                return null;
-            }
-                
+            
             BaseProjectile.Magazine itemMag = 
                 targetItem.GetHeldEntity()?.GetComponent<BaseProjectile>()?.primaryMagazine;
             
@@ -681,6 +686,8 @@ namespace Oxide.Plugins
                 {
                     item.GetOwnerPlayer().GiveItem(ItemManager.CreateByItemID(itemMag.ammoType.itemid, 
                         itemMag.contents));
+
+                    itemMag.contents = 0;
                 }
             }
             
@@ -692,6 +699,8 @@ namespace Oxide.Plugins
                 {
                     item.GetOwnerPlayer().GiveItem(ItemManager.CreateByItemID(flameThrower.fuelType.itemid, 
                         flameThrower.ammo));
+
+                    flameThrower.ammo = 0;
                 }
             }
             
@@ -703,17 +712,34 @@ namespace Oxide.Plugins
                 {
                     item.GetOwnerPlayer().GiveItem(ItemManager.CreateByItemID(chainsaw.fuelType.itemid, 
                         chainsaw.ammo));
+
+                    chainsaw.ammo = 0;
                 }
             }
-
-            return null;
+            
+            return true;
         }
         
         private Item OnItemSplit(Item item, int amount)
         {
-            item.amount -= amount;
-            
+            if (_config.DisableDupeFixAndLeaveWeaponMagsAlone)
+            {
+                return null;
+            }
+
             Item newItem = ItemManager.CreateByItemID(item.info.itemid, amount, item.skin);
+            BaseProjectile.Magazine newItemMag =
+                newItem.GetHeldEntity()?.GetComponent<BaseProjectile>()?.primaryMagazine;
+
+            if (newItem.contents?.itemList.Count == 0 && 
+                (_config.DisableDupeFixAndLeaveWeaponMagsAlone || (newItem.contents?.itemList.Count == 0 && newItemMag?.contents == 0)))
+            {
+                return null;
+            }
+
+            item.amount -= amount;
+            newItem.name = item.name;
+            newItem.skin = item.skin;
 
             if (item.IsBlueprint())
             {
@@ -740,14 +766,6 @@ namespace Oxide.Plugins
             }
             
             item.MarkDirty();
-            
-            if (_config.DisableDupeFixAndLeaveWeaponMagsAlone)
-            {
-                return newItem;
-            }
-            
-            BaseProjectile.Magazine newItemMag =
-                newItem.GetHeldEntity()?.GetComponent<BaseProjectile>()?.primaryMagazine;
 
             // Remove default ammo
             if (newItemMag != null)
