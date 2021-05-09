@@ -260,7 +260,7 @@ namespace Oxide.Plugins
 
         private void UpdateIndividualItemHardLimit(int itemId, int stackLimit)
         {
-            if (_config.IndividualItemStackMultipliers.ContainsKey(itemId.ToString()))
+            if (_config.IndividualItemStackHardLimits.ContainsKey(itemId.ToString()))
             {
                 _config.IndividualItemStackHardLimits[itemId.ToString()] = stackLimit;
                     
@@ -276,7 +276,7 @@ namespace Oxide.Plugins
         
         private void UpdateIndividualItemHardLimit(string shortname, int stackLimit)
         {
-            if (_config.IndividualItemStackMultipliers.ContainsKey(shortname))
+            if (_config.IndividualItemStackHardLimits.ContainsKey(shortname))
             {
                 _config.IndividualItemStackHardLimits[shortname] = stackLimit;
                     
@@ -490,7 +490,7 @@ namespace Oxide.Plugins
             
             ItemDefinition itemDefinition = ItemManager.FindItemDefinition(args[0]);
             string stackSizeString = args[1];
-            
+
             if (itemDefinition == null)
             {
                 player.Reply(GetMessage("InvalidItemShortnameOrId", player.Id));
