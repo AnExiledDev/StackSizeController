@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledGod", "3.3.1")]
+    [Info("Stack Size Controller", "AnExiledGod", "3.4.0")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
@@ -646,6 +646,7 @@ namespace Oxide.Plugins
             }
 
             Item targetItem = playerLoot.FindContainer(targetContainer).GetSlot(targetSlot);
+            ItemContainer container = playerLoot.FindContainer(targetContainer);
 
             if (targetItem.IsNull<Item>())
             {
@@ -658,7 +659,7 @@ namespace Oxide.Plugins
                 {
                     if (containedItem.info.itemType == ItemContainer.ContentsType.Liquid) { continue; }
 
-                    playerLoot.FindContainer(targetContainer).AddItem(containedItem.info, containedItem.amount, containedItem.skin);
+                    container.AddItem(containedItem.info, containedItem.amount, containedItem.skin);
                     containedItem.Remove();
                 }
             }
@@ -670,7 +671,7 @@ namespace Oxide.Plugins
                 {
                     if (containedItem.info.itemType == ItemContainer.ContentsType.Liquid) { continue; }
 
-                    playerLoot.FindContainer(targetContainer).AddItem(containedItem.info, containedItem.amount, containedItem.skin);
+                    container.AddItem(containedItem.info, containedItem.amount, containedItem.skin);
                     containedItem.Remove();
                 }
             }
@@ -683,7 +684,7 @@ namespace Oxide.Plugins
             {
                 if (itemMag.contents > 0)
                 {
-                    playerLoot.FindContainer(targetContainer).AddItem(itemMag.ammoType, itemMag.contents);
+                    container.AddItem(itemMag.ammoType, itemMag.contents);
 
                     itemMag.contents = 0;
                 }
@@ -695,7 +696,7 @@ namespace Oxide.Plugins
 
                 if (flameThrower.ammo > 0)
                 {
-                    playerLoot.FindContainer(targetContainer).AddItem(flameThrower.fuelType, flameThrower.ammo);
+                    container.AddItem(flameThrower.fuelType, flameThrower.ammo);
 
                     flameThrower.ammo = 0;
                 }
@@ -707,7 +708,7 @@ namespace Oxide.Plugins
 
                 if (chainsaw.ammo > 0)
                 {
-                    playerLoot.FindContainer(targetContainer).AddItem(chainsaw.fuelType, chainsaw.ammo);
+                    container.AddItem(chainsaw.fuelType, chainsaw.ammo);
 
                     chainsaw.ammo = 0;
                 }
