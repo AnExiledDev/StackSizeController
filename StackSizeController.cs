@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledGod", "3.3.1")]
+    [Info("Stack Size Controller", "AnExiledGod", "3.4.0")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
@@ -638,10 +638,17 @@ namespace Oxide.Plugins
 
         #region Hooks
 
-        // TODO: Investigate merging CanStackItem into CanMoveItem and potential performance issues
         object CanMoveItem(Item item, PlayerInventory playerLoot, uint targetContainer, int targetSlot, int amount)
         {
             if (_config.DisableDupeFixAndLeaveWeaponMagsAlone)
+            {
+                return null;
+            }
+
+            Item targetItem = playerLoot.FindContainer(targetContainer).GetSlot(targetSlot);
+            ItemContainer container = playerLoot.FindContainer(targetContainer);
+
+            if (targetItem.IsNull<Item>())
             {
                 return null;
             }
@@ -650,100 +657,64 @@ namespace Oxide.Plugins
             {
                 foreach (Item containedItem in item.contents.itemList)
                 {
-                    item.parent.AddItem(containedItem.info, containedItem.amount, containedItem.skin);
-                }
+                    if (containedItem.info.itemType == ItemContainer.ContentsType.Liquid) { continue; }
 
-                item.contents.Clear();
+                    container.AddItem(containedItem.info, containedItem.amount, containedItem.skin);
+                    containedItem.Remove();
+                }
             }
 
-            Item targetItem = item.parent.GetSlot(targetSlot);
-
             // Return contents
-            if (targetItem?.contents?.itemList.Count > 0)
+            if (targetItem.info.itemid == item.info.itemid && targetItem.contents?.itemList.Count > 0)
             {
                 foreach (Item containedItem in targetItem.contents.itemList)
                 {
-                    targetItem.parent.AddItem(containedItem.info, containedItem.amount, containedItem.skin);
-                }
+                    if (containedItem.info.itemType == ItemContainer.ContentsType.Liquid) { continue; }
 
-                targetItem.contents.Clear();
-            }
-
-            return null;
-        }
-
-        private object CanStackItem(Item item, Item targetItem)
-        {
-            if (_config.DisableDupeFixAndLeaveWeaponMagsAlone || 
-                (item.GetOwnerPlayer().IsUnityNull() && targetItem.GetOwnerPlayer().IsUnityNull())
-            )
-            {
-                return null;
-            }
-            
-            // Duplicating all game checks since we're overriding them by returning true
-            if (
-                item == targetItem ||
-                item.info.stackable <= 1 ||
-                targetItem.info.stackable <= 1 ||
-                item.info.itemid != targetItem.info.itemid ||
-                !item.IsValid() ||
-                item.IsBlueprint() && item.blueprintTarget != targetItem.blueprintTarget ||
-                targetItem.hasCondition && (targetItem.condition < targetItem.info.condition.max - 5) ||
-                (_config.PreventStackingDifferentSkins && item.skin != targetItem.skin)
-            )
-            {
-                return false;
-            }
-            
-            if (item.info.amountType == ItemDefinition.AmountType.Genetics ||
-                targetItem.info.amountType == ItemDefinition.AmountType.Genetics)
-            {
-                if ((item.instanceData?.dataInt ?? -1) != (targetItem.instanceData?.dataInt ?? -1))
-                {
-                    return false;
+                    container.AddItem(containedItem.info, containedItem.amount, containedItem.skin);
+                    containedItem.Remove();
                 }
             }
 
-            BaseProjectile.Magazine itemMag = 
-                targetItem.GetHeldEntity()?.GetComponent<BaseProjectile>()?.primaryMagazine;
-            
+            BaseProjectile.Magazine itemMag =
+                item.GetHeldEntity()?.GetComponent<BaseProjectile>()?.primaryMagazine;
+
             // Return ammo
             if (itemMag != null)
             {
                 if (itemMag.contents > 0)
                 {
-                    item.parent.AddItem(itemMag.ammoType, itemMag.contents);
+                    container.AddItem(itemMag.ammoType, itemMag.contents);
 
                     itemMag.contents = 0;
                 }
             }
-            
+
             if (targetItem.GetHeldEntity() is FlameThrower)
             {
-                FlameThrower flameThrower = targetItem.GetHeldEntity().GetComponent<FlameThrower>();
+                FlameThrower flameThrower = item.GetHeldEntity().GetComponent<FlameThrower>();
 
                 if (flameThrower.ammo > 0)
                 {
-                    item.parent.AddItem(flameThrower.fuelType, flameThrower.ammo);
+                    container.AddItem(flameThrower.fuelType, flameThrower.ammo);
 
                     flameThrower.ammo = 0;
                 }
             }
-            
+
             if (targetItem.GetHeldEntity() is Chainsaw)
             {
-                Chainsaw chainsaw = targetItem.GetHeldEntity().GetComponent<Chainsaw>();
+                Chainsaw chainsaw = item.GetHeldEntity().GetComponent<Chainsaw>();
 
                 if (chainsaw.ammo > 0)
                 {
-                    item.parent.AddItem(chainsaw.fuelType, chainsaw.ammo);
+                    container.AddItem(chainsaw.fuelType, chainsaw.ammo);
 
                     chainsaw.ammo = 0;
                 }
             }
-            
-            return true;
+
+            return null;
         }
         
         private Item OnItemSplit(Item item, int amount)
@@ -787,6 +758,8 @@ namespace Oxide.Plugins
             {
                 foreach (Item containedItem in item.contents.itemList)
                 {
+                    if (containedItem.info.itemType == ItemContainer.ContentsType.Liquid) { continue; }
+
                     containedItem.Remove();
                 }
             }
