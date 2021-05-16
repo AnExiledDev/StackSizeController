@@ -646,6 +646,13 @@ namespace Oxide.Plugins
                 return null;
             }
 
+            Item targetItem = item.parent.GetSlot(targetSlot);
+
+            if (targetItem.IsNull<Item>())
+            {
+                return null;
+            }
+
             if (item.contents?.itemList.Count > 0)
             {
                 foreach (Item containedItem in item.contents.itemList)
@@ -656,10 +663,8 @@ namespace Oxide.Plugins
                 item.contents.Clear();
             }
 
-            Item targetItem = item.parent.GetSlot(targetSlot);
-
             // Return contents
-            if (targetItem?.contents?.itemList.Count > 0)
+            if (targetItem.info.itemid == item.info.itemid && targetItem.contents?.itemList.Count > 0)
             {
                 foreach (Item containedItem in targetItem.contents.itemList)
                 {
