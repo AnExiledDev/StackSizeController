@@ -646,7 +646,7 @@ namespace Oxide.Plugins
                 return null;
             }
 
-            Item targetItem = item.parent.GetSlot(targetSlot);
+            Item targetItem = playerLoot.FindContainer(targetContainer).GetSlot(targetSlot);
 
             if (targetItem.IsNull<Item>())
             {
@@ -657,10 +657,11 @@ namespace Oxide.Plugins
             {
                 foreach (Item containedItem in item.contents.itemList)
                 {
-                    item.parent.AddItem(containedItem.info, containedItem.amount, containedItem.skin);
-                }
+                    if (containedItem.info.itemType == ItemContainer.ContentsType.Liquid) { continue; }
 
-                item.contents.Clear();
+                    playerLoot.FindContainer(targetContainer).AddItem(containedItem.info, containedItem.amount, containedItem.skin);
+                    containedItem.Remove();
+                }
             }
 
             // Return contents
@@ -668,10 +669,11 @@ namespace Oxide.Plugins
             {
                 foreach (Item containedItem in targetItem.contents.itemList)
                 {
-                    targetItem.parent.AddItem(containedItem.info, containedItem.amount, containedItem.skin);
-                }
+                    if (containedItem.info.itemType == ItemContainer.ContentsType.Liquid) { continue; }
 
-                targetItem.contents.Clear();
+                    playerLoot.FindContainer(targetContainer).AddItem(containedItem.info, containedItem.amount, containedItem.skin);
+                    containedItem.Remove();
+                }
             }
 
             return null;
@@ -792,6 +794,8 @@ namespace Oxide.Plugins
             {
                 foreach (Item containedItem in item.contents.itemList)
                 {
+                    if (containedItem.info.itemType == ItemContainer.ContentsType.Liquid) { continue; }
+
                     containedItem.Remove();
                 }
             }
