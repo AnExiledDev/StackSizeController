@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledGod", "3.4.0")]
+    [Info("Stack Size Controller", "AnExiledGod", "3.4.1")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
@@ -645,10 +645,10 @@ namespace Oxide.Plugins
                 return null;
             }
 
-            Item targetItem = playerLoot.FindContainer(targetContainer).GetSlot(targetSlot);
-            ItemContainer container = playerLoot.FindContainer(targetContainer);
+            ItemContainer container = playerLoot.FindContainer(targetContainer) ?? null;
+            Item targetItem = container.GetSlot(targetSlot) ?? null;
 
-            if (targetItem.IsNull<Item>())
+            if (targetItem.IsNull<Item>() || container.IsNull<ContainerIOEntity>())
             {
                 return null;
             }
