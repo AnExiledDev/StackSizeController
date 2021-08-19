@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Oxide.Core;
@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info( "Stack Size Controller", "AnExiledGod", "3.4.3" )]
+    [Info( "Stack Size Controller", "AnExiledGod", "3.4.4" )]
     [Description( "Allows configuration of most items max stack size." )]
     class StackSizeController : CovalencePlugin
     {
@@ -644,33 +644,30 @@ namespace Oxide.Plugins
             {
                 return null;
             }
-
             ItemContainer container = playerLoot?.FindContainer( targetContainer ) ?? null;
             Item targetItem = container?.GetSlot( targetSlot ) ?? null;
-
-            if ( item == null || targetItem == null || container == null || !(container is ContainerIOEntity) )
-            {
-                return null;
-            }
-
+            if (targetItem == null) return null;
+            
             if ( item.contents?.itemList.Count > 0 )
             {
                 foreach ( Item containedItem in item.contents.itemList )
                 {
                     if ( containedItem.info.itemType == ItemContainer.ContentsType.Liquid ) { continue; }
+                    
+                    if (!container.CanAccept(containedItem))return false;
 
-                    container.AddItem( containedItem.info, containedItem.amount, containedItem.skin );
+                    container.AddItem(containedItem.info, containedItem.amount, containedItem.skin);
                     containedItem.Remove();
                 }
             }
 
             // Return contents
-            if ( targetItem.info.itemid == item.info.itemid && targetItem.contents?.itemList.Count > 0 )
+            if ( targetItem!=null && targetItem.info.itemid == item.info.itemid && targetItem.contents?.itemList.Count > 0 )
             {
                 foreach ( Item containedItem in targetItem.contents.itemList )
                 {
                     if ( containedItem.info.itemType == ItemContainer.ContentsType.Liquid ) { continue; }
-
+            
                     container.AddItem( containedItem.info, containedItem.amount, containedItem.skin );
                     containedItem.Remove();
                 }
@@ -685,12 +682,11 @@ namespace Oxide.Plugins
                 if ( itemMag.contents > 0 )
                 {
                     container.AddItem( itemMag.ammoType, itemMag.contents );
-
                     itemMag.contents = 0;
                 }
             }
 
-            if ( targetItem.GetHeldEntity() is FlameThrower )
+            if (targetItem!=null && targetItem.GetHeldEntity() is FlameThrower )
             {
                 FlameThrower flameThrower = item.GetHeldEntity().GetComponent<FlameThrower>();
 
@@ -702,7 +698,7 @@ namespace Oxide.Plugins
                 }
             }
 
-            if ( targetItem.GetHeldEntity() is Chainsaw )
+            if (targetItem!=null && targetItem.GetHeldEntity() is Chainsaw )
             {
                 Chainsaw chainsaw = item.GetHeldEntity().GetComponent<Chainsaw>();
 
@@ -723,7 +719,7 @@ namespace Oxide.Plugins
             {
                 return null;
             }
-
+            Puts("OnItemSplit");
             Item newItem = ItemManager.CreateByItemID( item.info.itemid, amount, item.skin );
             BaseProjectile.Magazine newItemMag =
                 newItem.GetHeldEntity()?.GetComponent<BaseProjectile>()?.primaryMagazine;
@@ -760,6 +756,7 @@ namespace Oxide.Plugins
                 {
                     if ( containedItem.info.itemType == ItemContainer.ContentsType.Liquid ) { continue; }
 
+                    Puts(containedItem.info.itemType.ToString());
                     containedItem.Remove();
                 }
             }
