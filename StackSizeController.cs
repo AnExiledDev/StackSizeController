@@ -46,8 +46,8 @@ namespace Oxide.Plugins
 
             EnsureConfigIntegrity();
 
-            /*AddCovalenceCommand("stacksizecontroller.setstack", nameof(SetStackCommand),
-                "stacksizecontroller.setstack");*/
+            AddCovalenceCommand("stacksizecontroller.setstack", nameof(SetStackCommand),
+                "stacksizecontroller.setstack");
             AddCovalenceCommand("stacksizecontroller.setstackcat", nameof(SetStackCategoryCommand),
                 "stacksizecontroller.setstackcat");
             AddCovalenceCommand("stacksizecontroller.setallstacks", nameof(SetAllStacksCommand),
@@ -236,6 +236,11 @@ namespace Oxide.Plugins
                 ["InvalidCategory"] = "Category not found. Try stacksizecontroller.listcategories",
                 ["OperationSuccessful"] = "Operation completed successfully.",
             }, this);
+        }
+
+        private string GetMessage(string key)
+        {
+            return lang.GetMessage(key, this);
         }
 
         private string GetMessage(string key, string playerId)
