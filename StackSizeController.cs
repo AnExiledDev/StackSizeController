@@ -44,14 +44,6 @@ namespace Oxide.Plugins
 
             DownloadVanillaDefaults();
 
-            if (_vanillaDefaults != null)
-            {
-                Interface.Oxide.DataFileSystem.WriteObject<Dictionary<string, int>>(nameof(StackSizeController) +
-                "_vanilla-defaults", _vanillaDefaults);
-
-                PopulateIndividualItemStackSize();
-            }
-
             EnsureConfigIntegrity();
 
             /*AddCovalenceCommand("stacksizecontroller.setstack", nameof(SetStackCommand),
@@ -66,11 +58,6 @@ namespace Oxide.Plugins
                 "stacksizecontroller.listcategories");
             AddCovalenceCommand("stacksizecontroller.listcategoryitems", nameof(ListCategoryItemsCommand),
                 "stacksizecontroller.listcategoryitems");
-        }
-
-        private void OnServerInitialized()
-        {
-            SetStackSizes();
         }
 
         #region Configuration
@@ -215,6 +202,8 @@ namespace Oxide.Plugins
         {
             if (_config.IndividualItemStackSize.Count == 0)
             {
+                Puts($"Populating Individual Item Stack Sizes in configuration.");
+
                 _config.IndividualItemStackSize = _vanillaDefaults;
             }
             else
@@ -227,6 +216,8 @@ namespace Oxide.Plugins
                     }
                 }
             }
+
+            SaveConfig();
         }
 
         #endregion
@@ -457,6 +448,10 @@ namespace Oxide.Plugins
 
             Interface.Oxide.DataFileSystem.WriteObject(nameof(StackSizeController) +
                     "_vanilla-defaults", _vanillaDefaults);
+
+            // TODO: Consider refactoring workflow to avoid ambiguity
+            PopulateIndividualItemStackSize();
+            SetStackSizes();
         }
 
         private int GetVanillaStackSize(ItemDefinition itemDefinition)
