@@ -32,9 +32,6 @@ namespace Oxide.Plugins
         private void Init()
         {
             _config = Config.ReadObject<Configuration>();
-            _vanillaDefaults =
-                Interface.Oxide.DataFileSystem.ReadObject<Dictionary<string, int>>(nameof(StackSizeController) +
-                    "_vanilla-defaults");
 
             if (_config == null)
             {
@@ -45,7 +42,7 @@ namespace Oxide.Plugins
 
             Puts($"Acquiring vanilla defaults file from official GitHub repo and overwriting; {_vanillaDefaultsUri}");
 
-            _vanillaDefaults = DownloadVanillaDefaults();
+            DownloadVanillaDefaults();
 
             if (_vanillaDefaults != null)
             {
@@ -437,30 +434,29 @@ namespace Oxide.Plugins
 
         #region Helpers
 
-        private Dictionary<string, int> DownloadVanillaDefaults()
+        private void DownloadVanillaDefaults()
         {
             try
             {
-                string _response = null;
-
-                webrequest.Enqueue(_vanillaDefaultsUri, null, (code, response) =>
-                {
-                    if (code != 200 || response == null)
-                    {
-                        LogError($"Unable to get result from GitHub, code {code}.");
-                    }
-
-                    _response = response;
-                }, this, RequestMethod.GET);
-
-                return JsonConvert.DeserializeObject<Dictionary<string, int>>(_response);
+                webrequest.Enqueue(_vanillaDefaultsUri, null, SetVanillaDefaults, this, RequestMethod.GET);
             }
             catch (Exception ex)
             {
-                LogError($"Exception encountered while attempting to get vanilla defaults, EX: {ex.Message}");
-
-                return null;
+                LogError($"Exception encountered while attempting to get vanilla defaults: {ex}");
             }
+        }
+
+        private void SetVanillaDefaults(int code, string response)
+        {
+            if (code != 200 || response == null)
+            {
+                LogError($"Unable to get result from GitHub, code {code}.");
+            }
+
+            _vanillaDefaults = JsonConvert.DeserializeObject<Dictionary<string, int>>(response);
+
+            Interface.Oxide.DataFileSystem.WriteObject(nameof(StackSizeController) +
+                    "_vanilla-defaults", _vanillaDefaults);
         }
 
         private int GetVanillaStackSize(ItemDefinition itemDefinition)
