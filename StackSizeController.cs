@@ -35,12 +35,12 @@ namespace Oxide.Plugins
 
             if (_config == null)
             {
-                Puts("Generating Default Config File.");
+                Log("Generating Default Config File.");
 
                 LoadDefaultConfig();
             }
 
-            Puts($"Acquiring vanilla defaults file from official GitHub repo and overwriting; {_vanillaDefaultsUri}");
+            Log($"Acquiring vanilla defaults file from official GitHub repo and overwriting; {_vanillaDefaultsUri}");
 
             DownloadVanillaDefaults();
 
@@ -202,7 +202,7 @@ namespace Oxide.Plugins
         {
             if (_config.IndividualItemStackSize.Count == 0)
             {
-                Puts($"Populating Individual Item Stack Sizes in configuration.");
+                Log($"Populating Individual Item Stack Sizes in configuration.");
 
                 _config.IndividualItemStackSize = _vanillaDefaults;
             }
@@ -380,11 +380,6 @@ namespace Oxide.Plugins
             }
 
             ItemCategory itemCategory = (ItemCategory)Enum.Parse(typeof(ItemCategory), args[0]);
-
-            if (itemCategory == null)
-            {
-                player.Reply(GetMessage("InvalidCategory", player.Id));
-            }
 
             TextTable output = new TextTable();
             output.AddColumns("Unique Id", "Shortname", "Category", "Vanilla Stack", "Custom Stack", "Multiplier");
