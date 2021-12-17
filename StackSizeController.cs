@@ -166,37 +166,39 @@ namespace Oxide.Plugins
             SaveConfig();
         }
 
-        /*private void UpdateIndividualItemHardLimit(int itemId, int stackLimit)
+        private void UpdateIndividualItemStackSize(int itemId, int stackLimit)
         {
-            if (_config.IndividualItemStackHardLimits.ContainsKey(itemId.ToString()))
+            ItemDefinition item = ItemManager.FindItemDefinition(itemId);
+
+            if (_config.IndividualItemStackSize.ContainsKey(item.shortname))
             {
-                _config.IndividualItemStackHardLimits[itemId.ToString()] = stackLimit;
+                _config.IndividualItemStackSize[item.shortname] = stackLimit;
 
                 SaveConfig();
 
                 return;
             }
 
-            _config.IndividualItemStackHardLimits.Add(GetIndexedItem(itemId).Shortname, stackLimit);
+            _config.IndividualItemStackSize.Add(item.shortname, stackLimit);
 
             SaveConfig();
         }
 
-        private void UpdateIndividualItemHardLimit(string shortname, int stackLimit)
+        private void UpdateIndividualItemStackSize(string shortname, int stackLimit)
         {
-            if (_config.IndividualItemStackHardLimits.ContainsKey(shortname))
+            if (_config.IndividualItemStackSize.ContainsKey(shortname))
             {
-                _config.IndividualItemStackHardLimits[shortname] = stackLimit;
+                _config.IndividualItemStackSize[shortname] = stackLimit;
 
                 SaveConfig();
 
                 return;
             }
 
-            _config.IndividualItemStackHardLimits.Add(shortname, stackLimit);
+            _config.IndividualItemStackSize.Add(shortname, stackLimit);
 
             SaveConfig();
-        }*/
+        }
 
         private void PopulateIndividualItemStackSize()
         {
@@ -251,8 +253,7 @@ namespace Oxide.Plugins
 
         #region Commands
 
-        // TODO: Refactor
-        /*private void SetStackCommand(IPlayer player, string command, string[] args)
+        private void SetStackCommand(IPlayer player, string command, string[] args)
         {
             if (args.Length != 2)
             {
@@ -282,12 +283,12 @@ namespace Oxide.Plugins
                 return;
             }
 
-            UpdateIndividualItemHardLimit(itemDefinition.shortname, Convert.ToInt32(stackSizeString.TrimEnd('x')));
+            UpdateIndividualItemStackSize(itemDefinition.shortname, Convert.ToInt32(stackSizeString.TrimEnd('x')));
 
             SetStackSizes();
 
             player.Reply(GetMessage("OperationSuccessful", player.Id));
-        }*/
+        }
 
         private void SetAllStacksCommand(IPlayer player, string command, string[] args)
         {
@@ -317,11 +318,6 @@ namespace Oxide.Plugins
             }
 
             ItemCategory itemCategory = (ItemCategory)Enum.Parse(typeof(ItemCategory), args[0], true);
-
-            if (itemCategory == null)
-            {
-                player.Reply(GetMessage("InvalidCategory", player.Id));
-            }
 
             _config.CategoryStackMultipliers[itemCategory.ToString()] = Convert.ToInt32(args[1].TrimEnd('x'));
 
