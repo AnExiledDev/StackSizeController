@@ -474,7 +474,7 @@ namespace Oxide.Plugins
             }
 
             // Individual Multiplier set by shortname
-            int stackable = _config.IndividualItemStackSize[itemDefinition.shortname];
+            int stackable = _vanillaDefaults[itemDefinition.shortname];
             if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.shortname))
             {
                 return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.shortname]);
