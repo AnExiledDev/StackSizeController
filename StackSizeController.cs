@@ -43,7 +43,6 @@ namespace Oxide.Plugins
             Log($"Acquiring vanilla defaults file from official GitHub repo and overwriting; {_vanillaDefaultsUri}");
 
             DownloadVanillaDefaults();
-
             EnsureConfigIntegrity();
 
             AddCovalenceCommand("stacksizecontroller.setstack", nameof(SetStackCommand),
@@ -58,6 +57,11 @@ namespace Oxide.Plugins
                 "stacksizecontroller.listcategories");
             AddCovalenceCommand("stacksizecontroller.listcategoryitems", nameof(ListCategoryItemsCommand),
                 "stacksizecontroller.listcategoryitems");
+        }
+
+        private void Unload()
+        {
+            RevertStackSizes();
         }
 
         #region Configuration
@@ -526,7 +530,22 @@ namespace Oxide.Plugins
 
         private void RevertStackSizes()
         {
-            // TODO: Implement request and revision
+            Log("Reverting stack sizes to vanilla defaults.");
+
+            foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions())
+            {
+                if (itemDefinition.condition.enabled && !_config.AllowStackingItemsWithDurability)
+                {
+                    continue;
+                }
+
+                if (_ignoreList.Contains(itemDefinition.shortname))
+                {
+                    continue;
+                }
+
+                itemDefinition.stackable = Mathf.Clamp(GetVanillaStackSize(itemDefinition), 1, int.MaxValue);
+            }
         }
 
         #endregion
