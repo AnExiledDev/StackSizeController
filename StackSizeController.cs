@@ -53,11 +53,16 @@ namespace Oxide.Plugins
                 "stacksizecontroller.listcategories");
             AddCovalenceCommand("stacksizecontroller.listcategoryitems", nameof(ListCategoryItemsCommand),
                 "stacksizecontroller.listcategoryitems");
+            AddCovalenceCommand("stacksizecontroller.vd", nameof(GenerateVanillaStackSizeFileCommand),
+                "stacksizecontroller.vd");
         }
 
         private void Unload()
         {
-            RevertStackSizes();
+            if (_config.RevertStackSizesToVanillaOnUnload)
+            {
+                RevertStackSizes();
+            }
         }
 
         #region Configuration
@@ -66,7 +71,6 @@ namespace Oxide.Plugins
         {
             public bool RevertStackSizesToVanillaOnUnload = true;
             public bool AllowStackingItemsWithDurability = true;
-            public bool PreventStackingDifferentSkins;
             public bool HidePrefixWithPluginNameInMessages;
 
             public float GlobalStackMultiplier = 1;
@@ -401,8 +405,7 @@ namespace Oxide.Plugins
 
         #region Dev Use
 
-        [Command("stacksizecontroller.vd")]
-        private void GenerateVanillaStackSizeFile(IPlayer player, string command, string[] args)
+        private void GenerateVanillaStackSizeFileCommand(IPlayer player, string command, string[] args)
         {
             SortedDictionary<string, int> vanillaStackSizes = new SortedDictionary<string, int>();
 
