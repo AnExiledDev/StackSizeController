@@ -40,8 +40,6 @@ namespace Oxide.Plugins
                 LoadDefaultConfig();
             }
 
-            Log($"Acquiring vanilla defaults file from official GitHub repo and overwriting; {_vanillaDefaultsUri}");
-
             DownloadVanillaDefaults();
             EnsureConfigIntegrity();
 
@@ -427,6 +425,8 @@ namespace Oxide.Plugins
 
         private void DownloadVanillaDefaults()
         {
+            Log($"Acquiring vanilla defaults file from official GitHub repo and overwriting; {_vanillaDefaultsUri}");
+
             try
             {
                 webrequest.Enqueue(_vanillaDefaultsUri, null, SetVanillaDefaults, this, RequestMethod.GET);
@@ -473,8 +473,9 @@ namespace Oxide.Plugins
                 return GetVanillaStackSize(itemDefinition);
             }
 
+            int stackable = GetVanillaStackSize(itemDefinition);
+
             // Individual Multiplier set by shortname
-            int stackable = _vanillaDefaults[itemDefinition.shortname];
             if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.shortname))
             {
                 return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.shortname]);
