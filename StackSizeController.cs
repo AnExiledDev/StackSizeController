@@ -79,10 +79,6 @@ namespace Oxide.Plugins
                     k => Convert.ToSingle(k.Value));
             public Dictionary<string, float> IndividualItemStackMultipliers = new Dictionary<string, float>();
 
-            public Dictionary<string, int> CategoryStackHardLimits = GetCategoriesAndDefaults(0)
-                    .ToDictionary(x => x.Key,
-                        x => Convert.ToInt32(x.Value));
-
             public Dictionary<string, int> IndividualItemStackSize = new Dictionary<string, int>();
 
             public VersionNumber VersionNumber;
@@ -474,7 +470,7 @@ namespace Oxide.Plugins
                 return GetVanillaStackSize(itemDefinition);
             }
 
-            int stackable = GetVanillaStackSize(itemDefinition);
+            int stackable = _config.IndividualItemStackSize[itemDefinition.shortname];
 
             // Individual Multiplier set by shortname
             if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.shortname))
@@ -486,13 +482,6 @@ namespace Oxide.Plugins
             if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.itemid.ToString()))
             {
                 return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.itemid.ToString()]);
-            }
-
-            // Category stack limit defined
-            if (_config.CategoryStackHardLimits.ContainsKey(itemDefinition.category.ToString()) &&
-                _config.CategoryStackHardLimits[itemDefinition.category.ToString()] > 0)
-            {
-                return _config.CategoryStackHardLimits[itemDefinition.category.ToString()];
             }
 
             // Category stack multiplier defined
