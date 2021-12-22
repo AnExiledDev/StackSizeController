@@ -504,7 +504,7 @@ namespace Oxide.Plugins
             }
             catch (Exception ex)
             {
-                LogError("Exception encountered during GetStackSize." + ex.ToString());
+                LogError("Exception encountered during GetStackSize. Item: " + itemDefinition.shortname + " Ex:" + ex.ToString());
 
                 return GetVanillaStackSize(itemDefinition);
             }
