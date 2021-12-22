@@ -465,40 +465,49 @@ namespace Oxide.Plugins
 
         private int GetStackSize(ItemDefinition itemDefinition)
         {
-            if (_ignoreList.Contains(itemDefinition.shortname))
+            try
             {
+                if (_ignoreList.Contains(itemDefinition.shortname))
+                {
+                    return GetVanillaStackSize(itemDefinition);
+                }
+
+                int stackable = _config.IndividualItemStackSize[itemDefinition.shortname];
+
+                // Individual Multiplier set by shortname
+                if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.shortname))
+                {
+                    return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.shortname]);
+                }
+
+                // Individual Multiplier set by item id
+                if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.itemid.ToString()))
+                {
+                    return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.itemid.ToString()]);
+                }
+
+                // Category stack multiplier defined
+                if (_config.CategoryStackMultipliers.ContainsKey(itemDefinition.category.ToString()) &&
+                    _config.CategoryStackMultipliers[itemDefinition.category.ToString()] > 1.0f)
+                {
+                    return Mathf.RoundToInt(
+                        stackable * _config.CategoryStackMultipliers[itemDefinition.category.ToString()]);
+                }
+
+                // Individual Limit set by shortname
+                if (_config.IndividualItemStackSize.ContainsKey(itemDefinition.shortname))
+                {
+                    return _config.IndividualItemStackSize[itemDefinition.shortname];
+                }
+
+                return Mathf.RoundToInt(stackable * _config.GlobalStackMultiplier);
+            }
+            catch (Exception ex)
+            {
+                LogError("Exception encountered during GetStackSize." + ex.ToString());
+
                 return GetVanillaStackSize(itemDefinition);
             }
-
-            int stackable = _config.IndividualItemStackSize[itemDefinition.shortname];
-
-            // Individual Multiplier set by shortname
-            if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.shortname))
-            {
-                return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.shortname]);
-            }
-
-            // Individual Multiplier set by item id
-            if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.itemid.ToString()))
-            {
-                return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.itemid.ToString()]);
-            }
-
-            // Category stack multiplier defined
-            if (_config.CategoryStackMultipliers.ContainsKey(itemDefinition.category.ToString()) &&
-                _config.CategoryStackMultipliers[itemDefinition.category.ToString()] > 1.0f)
-            {
-                return Mathf.RoundToInt(
-                    stackable * _config.CategoryStackMultipliers[itemDefinition.category.ToString()]);
-            }
-
-            // Individual Limit set by shortname
-            if (_config.IndividualItemStackSize.ContainsKey(itemDefinition.shortname))
-            {
-                return _config.IndividualItemStackSize[itemDefinition.shortname];
-            }
-
-            return Mathf.RoundToInt(stackable * _config.GlobalStackMultiplier);
         }
 
         private void SetStackSizes()
