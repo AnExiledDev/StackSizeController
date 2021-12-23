@@ -210,11 +210,13 @@ namespace Oxide.Plugins
             }
             else
             {
-                foreach (KeyValuePair<string, int> vanillaStack in _vanillaDefaults)
+                foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions())
                 {
-                    if (!_config.IndividualItemStackSize.ContainsKey(vanillaStack.Key))
+                    if (!_config.IndividualItemStackSize.ContainsKey(itemDefinition.shortname))
                     {
-                        _config.IndividualItemStackSize.Add(vanillaStack.Key, vanillaStack.Value);
+                        Log($"Adding new item {itemDefinition.shortname} to IndividualItemStackSize in configuration.");
+
+                        _config.IndividualItemStackSize.Add(itemDefinition.shortname, itemDefinition.stackable);
                     }
                 }
             }
@@ -403,6 +405,13 @@ namespace Oxide.Plugins
 
         private void GenerateVanillaStackSizeFileCommand(IPlayer player, string command, string[] args)
         {
+            GenerateVanillaStackSizeFile();
+        }
+
+        private void GenerateVanillaStackSizeFile()
+        {
+            RevertStackSizes();
+
             SortedDictionary<string, int> vanillaStackSizes = new SortedDictionary<string, int>();
 
             foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions())
@@ -413,7 +422,9 @@ namespace Oxide.Plugins
             Interface.Oxide.DataFileSystem.WriteObject(nameof(StackSizeController) + "_vanilla-defaults",
                 vanillaStackSizes);
 
-            player.Reply("DEV: Vanilla stack sizes file generated from current stack sizes.");
+            SetStackSizes();
+
+            Log("Vanilla stack sizes file updated.");
         }
 
         #endregion
