@@ -13,7 +13,7 @@ namespace Oxide.Plugins
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
-        private const string _vanillaDefaultsUri = "https://raw.githubusercontent.com/AnExiledDev/StackSizeController/dev/vanilla-defaults.json";
+        private const string _vanillaDefaultsUri = "https://raw.githubusercontent.com/AnExiledDev/StackSizeController/master/vanilla-defaults.json";
 
         private Configuration _config;
         private Dictionary<string, int> _vanillaDefaults;
