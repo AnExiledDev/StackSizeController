@@ -186,6 +186,14 @@
 - `IndividualItemStackMultipliers` - Accepts "item_id": multiplier. Use stacksizecontroller.itemsearch to find the item id easily.
 - `IndividualItemStackSize` - Where you define specific stack sizes for each individual item.
 
-## Data
+## Developer Hooks
 
-No data files are used except vanilla-defaults which is overriden everytime the plugin loads. You're welcome to edit it, but that'd be a waste of time.
+#### OnVendorHeliFuelAdjust
+
+- Called when a heli has spawned at a vendor, and this plugin is about to reset its fuel amount to 100
+- Returning `false` will prevent the fuel from being adjusted
+- Returning `null` will result in the default behavior
+
+```csharp
+bool? OnVendorHeliFuelAdjust(MiniCopter heli)
+```
