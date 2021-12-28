@@ -291,12 +291,17 @@ namespace Oxide.Plugins
                     return;
 
                 var hookResult = Interface.CallHook("OnVendorHeliFuelAdjust", heli);
-                if (hookResult is bool && (bool) hookResult == false)
+                if (hookResult is bool && (bool)hookResult == false)
                     return;
 
                 fuelItem.amount = 100;
                 fuelItem.MarkDirty();
             });
+        }
+
+        int OnMaxStackable(Item item)
+        {
+            return GetStackSize(item.info);
         }
 
         #endregion
