@@ -1,14 +1,23 @@
 ## Feature Highlights
 * Allows setting stack sizes for nearly every item in Rust.
-* Items are catagorized and automatically populated in the data file.
-* Stacks can easily be modified globally, by category or individually in the configuration file. If you want complete control over every item you can modify each item individually in the data file.
+* Items are automatically populated in the configuration file.
+* Stacks can easily be modified globally, by category or individually in the configuration file.
 * Several quality of life commands allowing you to **search all items** and list categories.
 * Item search displays vanilla stack rate as well as custom stack rate after multipliers.
 
 
 ## Quick Important Notes
-* If stack sizes are modified in the data file (at /oxide/data/StackSizeController.json) defined hard limits will override them, whereas defined multipliers will multiply that base value.
-* Stacking an item over 2,147,483,647 will cause an error when loaded and will not stack the item at that number. 2,147,483,647 is the max for stack sizes for all stack size plugins.
+* Running the plugin once generates items in configuration for IndividualItemStackSize from vanilla defaults. This list is automatically updated when new items are detected, and a notification is put in the console.
+* Multipliers multiply IndividualItemStackSize definitions not vanilla stack size. Individual multipliers take priority over category stack multipliers. 
+* Datafiles are no longer used. Editing vanilla-defaults does nothing but screw up stack sizes when unloading the plugin.
+* Stacking an item over 2,147,483,647 will cause an error when loaded and will not stack the item at that number. 2,147,483,647 is the max for stack sizes for all stack size plugins as it is a hardcoded limitation of Rust.
+
+
+## Installation Instructions
+* Put plugin in oxide/plugins.
+* Start server and wait for StackSizeController to be loaded.
+* Open the configuration and modify settings as needed. Setting individual stack sizes is done in the configuration NOT datafile in value IndividualItemStackSize which is generated on plugin load.
+* Run o.reload StackSizeController in console to set configured stack sizes.
 
 
 ## Console Commands
@@ -74,16 +83,6 @@
 
 ##### Updates configuration file, changing every category to the defined multiplier.
 
-----
-
-### **stacksizecontroller.regendatafile**
-##### **Permission:** `stacksizecontroller.regendatafile` (Only needed if used in-game)
-##### **Usage:** `stacksizecontroller.regendatafile`
-##### **Parameters:** `No Parameters`
-##### **Usage Example:** `stacksizecontroller.regendatafile`
-
-##### Wipes the data file and regenerates the item cache. (Note: Item cache is automatically maintained on plugin initialization.)
-
 
 ## Configuration
 
@@ -93,7 +92,6 @@
   "RevertStackSizesToVanillaOnUnload": true,
   "AllowStackingItemsWithDurability": true,
   "HidePrefixWithPluginNameInMessages": false,
-  "DisableDupeFixAndLeaveWeaponMagsAlone": false,
   "GlobalStackMultiplier": 1.0,
   "CategoryStackMultipliers": {
     "Weapon": 1.0,
@@ -116,30 +114,10 @@
     "Fun": 1.0
   },
   "IndividualItemStackMultipliers": {},
-  "CategoryStackHardLimits": {
-    "Weapon": 0,
-    "Construction": 0,
-    "Items": 0,
-    "Resources": 0,
-    "Attire": 0,
-    "Tool": 0,
-    "Medical": 0,
-    "Food": 0,
-    "Ammunition": 0,
-    "Traps": 0,
-    "Misc": 0,
-    "All": 0,
-    "Common": 0,
-    "Component": 0,
-    "Search": 0,
-    "Favourite": 0,
-    "Electrical": 0,
-    "Fun": 0
-  },
-  "IndividualItemStackHardLimits": {},
+  "IndividualItemStackSize": {},
   "VersionNumber": {
-    "Major": 3,
-    "Minor": 2,
+    "Major": 4,
+    "Minor": 0,
     "Patch": 0
   }
 }
@@ -151,11 +129,10 @@
   "RevertStackSizesToVanillaOnUnload": true,
   "AllowStackingItemsWithDurability": true,
   "HidePrefixWithPluginNameInMessages": false,
-  "DisableDupeFixAndLeaveWeaponMagsAlone": false,
-  "GlobalStackMultiplier": 1,
+  "GlobalStackMultiplier": 1.0,
   "CategoryStackMultipliers": {
-    "Weapon": 10.0,
-    "Construction": 1.0,
+    "Weapon": 1.0,
+    "Construction": 5.0,
     "Items": 1.0,
     "Resources": 1.0,
     "Attire": 1.0,
@@ -173,35 +150,29 @@
     "Electrical": 1.0,
     "Fun": 1.0
   },
-  "IndividualItemStackMultipliers": {
-    "-566907190": 10
+  "IndividualItemStackMultipliers": 
+  {
+    "-586342290": 10,
+    "ammo.pistol": 20
   },
-  "CategoryStackHardLimits": {
-    "Weapon": 1,
-    "Construction": 0,
-    "Items": 0,
-    "Resources": 50000,
-    "Attire": 0,
-    "Tool": 0,
-    "Medical": 15,
-    "Food": 0,
-    "Ammunition": 0,
-    "Traps": 0,
-    "Misc": 0,
-    "All": 0,
-    "Common": 0,
-    "Component": 0,
-    "Search": 0,
-    "Favourite": 0,
-    "Electrical": 0,
-    "Fun": 0
-  },
-  "IndividualItemStackHardLimits": {
-    "-586342290": 3
+  "IndividualItemStackSize": {
+    "abovegroundpool": 1,
+    "aiming.module.mlrs": 1,
+    "ammo.grenadelauncher.buckshot": 24,
+    "ammo.grenadelauncher.he": 12,
+    "ammo.grenadelauncher.smoke": 12,
+    "ammo.handmade.shell": 64,
+    "ammo.nailgun.nails": 64,
+    "ammo.pistol": 128,
+    "ammo.pistol.fire": 128,
+    "ammo.pistol.hv": 128,
+    "ammo.rifle": 128,
+    "ammo.rifle.explosive": 128,
+    (... Continued)
   },
   "VersionNumber": {
-    "Major": 3,
-    "Minor": 2,
+    "Major": 4,
+    "Minor": 0,
     "Patch": 0
   }
 }
@@ -210,76 +181,10 @@
 - `RevertStackSizesToVanillaOnUnload` - If true; item stacksizes are returned to vanilla defaults on plugin unload.
 - `AllowStackingItemsWithDurability` - If enabled, items with durability such as weapons can be stacked if they are at full durability. If disabled items with durability can't be stacked at all. (Contents, attachments and ammo are all returned to the player)
 - `HidePrefixWithPluginNameInMessages` - Currently does nothing. Future version will hide the prefix from chat messages in-game.
-- `DisableDupeFixAndLeaveWeaponMagsAlone` - Disables the dupe fix, which removes ammo from weapons when stacking, with this disabled players can dupe any ammo slowly. 
 - `GlobalStackMultiplier` - Multiplies all item stacks by this value.
 - `CategoryStackMultipliers` - Each category will multiply stacks for those items by the defined amount.
 - `IndividualItemStackMultipliers` - Accepts "item_id": multiplier. Use stacksizecontroller.itemsearch to find the item id easily.
-- `CategoryStackHardLimits` - Each item in this category will be set to this hard stack limit, if the value is above 0.
-- `IndividualItemStackHardLimits` - Accepts "item_id": hard limit. Use stacksizecontroller.itemsearch to find the item id easily.
-
-## Data
-
-### StackSizeController.json
-- Each item is separated into different categories which are generated by the game. Everything in this file is auto generated and automatically maintained.
-- The only value in here not overriden are the CustomStackSize values. You can modify these for fine-tuning stack sizes of every item in the inventory or storages.
-- You do not need to modify this file unless you need more control than the configuration gives you. Modifying this value overrides every config file definition EXCEPT IndividualItemStackHardLimits.
-- **Setting "CustomStackSize" to any value other than 0 will override vanilla defaults. (As of v3.1.3)**
-
-#### Datafile Example
-```json    
-"Resources": [
-   {
-     "ItemId": 996293980,
-     "Shortname": "skull.human",
-     "HasDurability": false,
-     "VanillaStackSize": 1,
-     "CustomStackSize": 0
-   },
-   {
-     "ItemId": 204391461,
-     "Shortname": "coal",
-     "HasDurability": false,
-     "VanillaStackSize": 1,
-     "CustomStackSize": 0
-   },
-   {
-     "ItemId": -1018587433,
-     "Shortname": "fat.animal",
-     "HasDurability": false,
-     "VanillaStackSize": 1000,
-     "CustomStackSize": 0
-   },
-   {
-     "ItemId": 609049394,
-     "Shortname": "battery.small",
-     "HasDurability": false,
-     "VanillaStackSize": 1,
-     "CustomStackSize": 0
-   },
-   {
-     "ItemId": 1719978075,
-     "Shortname": "bone.fragments",
-     "HasDurability": false,
-     "VanillaStackSize": 1000,
-     "CustomStackSize": 0
-   },
-   {
-     "ItemId": 634478325,
-     "Shortname": "cctv.camera",
-     "HasDurability": false,
-     "VanillaStackSize": 64,
-     "CustomStackSize": 0
-   },
-   {
-     "ItemId": -1938052175,
-     "Shortname": "charcoal",
-     "HasDurability": false,
-     "VanillaStackSize": 1000,
-     "CustomStackSize": 0
-   },
-   (... continued)
-]
-```
+- `IndividualItemStackSize` - Where you define specific stack sizes for each individual item.
 
 ## Developer Hooks
 
