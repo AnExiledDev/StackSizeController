@@ -533,6 +533,7 @@ namespace Oxide.Plugins
 
                 int stackable = GetVanillaStackSize(itemDefinition);
 
+                // Individual Limit set by shortname
                 if (_config.IndividualItemStackSize.ContainsKey(itemDefinition.shortname))
                 {
                     stackable = _config.IndividualItemStackSize[itemDefinition.shortname];
@@ -558,12 +559,6 @@ namespace Oxide.Plugins
                         stackable * _config.CategoryStackMultipliers[itemDefinition.category.ToString()]);
                 }
 
-                // Individual Limit set by shortname
-                if (_config.IndividualItemStackSize.ContainsKey(itemDefinition.shortname))
-                {
-                    return _config.IndividualItemStackSize[itemDefinition.shortname];
-                }
-
                 return Mathf.RoundToInt(stackable * _config.GlobalStackMultiplier);
             }
             catch (Exception ex)
@@ -580,6 +575,8 @@ namespace Oxide.Plugins
             {
                 if (itemDefinition.condition.enabled && !_config.AllowStackingItemsWithDurability)
                 {
+                    itemDefinition.stackable = Mathf.Clamp(GetVanillaStackSize(itemDefinition), 1, int.MaxValue);
+
                     continue;
                 }
 
