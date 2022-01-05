@@ -301,6 +301,11 @@ namespace Oxide.Plugins
 
         int OnMaxStackable(Item item)
         {
+            if (_vanillaDefaults == null)
+            {
+                return item.info.stackable;
+            }
+
             return GetStackSize(item.info);
         }
 
@@ -497,10 +502,11 @@ namespace Oxide.Plugins
         {
             if (code != 200 || response == null)
             {
-                LogWarning($"Unable to get result from GitHub, code {code}.");
+                LogWarning($"Unable to get result from GitHub, code {code}. If you don't have a vanilla defaults datafile, the plugin will throw errors. " +
+                    $"Reloading should resolve this unless there is something preventing downloads from external sites.");
+                LogWarning("If the issue persists, check the uMod forums for StackSizeController for a manual fix.");
 
-                Log("Attempting temporary workaround. If this doesn't work, reload the plugin until it's able to grab the vanilla defaults file.");
-                GenerateVanillaStackSizeFile();
+                return;
             }
 
             _vanillaDefaults = JsonConvert.DeserializeObject<Dictionary<string, int>>(response);
