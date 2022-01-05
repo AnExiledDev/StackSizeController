@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledDev", "4.1.0")]
+    [Info("Stack Size Controller", "AnExiledDev", "4.1.1")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
@@ -472,7 +472,7 @@ namespace Oxide.Plugins
 
             SetStackSizes();
 
-            Log("Vanilla stack sizes file updated.");
+            Log("Vanilla stack sizes file updated. Custom stack sizes restored.");
         }
 
         #endregion
@@ -497,7 +497,10 @@ namespace Oxide.Plugins
         {
             if (code != 200 || response == null)
             {
-                LogError($"Unable to get result from GitHub, code {code}.");
+                LogWarning($"Unable to get result from GitHub, code {code}.");
+
+                Log("Attempting temporary workaround. If this doesn't work, reload the plugin until it's able to grab the vanilla defaults file.");
+                GenerateVanillaStackSizeFile();
             }
 
             _vanillaDefaults = JsonConvert.DeserializeObject<Dictionary<string, int>>(response);
