@@ -8,7 +8,7 @@
 
 ## Quick Important Notes
 * Running the plugin once generates items in configuration for IndividualItemStackSize from vanilla defaults. This list is automatically updated when new items are detected, and a notification is put in the console.
-* Multipliers multiply IndividualItemStackSize definitions not vanilla stack size. Individual multipliers take priority over category stack multipliers. 
+* Multipliers multiply IndividualItemStackSize definitions not vanilla stack size. Individual multipliers take priority over category stack multipliers.
 * Datafiles are no longer used. Editing vanilla-defaults does nothing but screw up stack sizes when unloading the plugin.
 * Stacking an item over 2,147,483,647 will cause an error when loaded and will not stack the item at that number. 2,147,483,647 is the max for stack sizes for all stack size plugins as it is a hardcoded limitation of Rust.
 
@@ -150,7 +150,7 @@
     "Electrical": 1.0,
     "Fun": 1.0
   },
-  "IndividualItemStackMultipliers": 
+  "IndividualItemStackMultipliers":
   {
     "-586342290": 10,
     "ammo.pistol": 20
@@ -185,15 +185,3 @@
 - `CategoryStackMultipliers` - Each category will multiply stacks for those items by the defined amount.
 - `IndividualItemStackMultipliers` - Accepts "item_id": multiplier. Use stacksizecontroller.itemsearch to find the item id easily.
 - `IndividualItemStackSize` - Where you define specific stack sizes for each individual item.
-
-## Developer Hooks
-
-#### OnVendorHeliFuelAdjust
-
-- Called when a heli has spawned at a vendor, and this plugin is about to reset its fuel amount to 100
-- Returning `false` will prevent the fuel from being adjusted
-- Returning `null` will result in the default behavior
-
-```csharp
-bool? OnVendorHeliFuelAdjust(MiniCopter heli)
-```

@@ -1,11 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Oxide.Core;
 using Oxide.Core.Libraries;
 using Oxide.Core.Libraries.Covalence;
-using Oxide.Core.Plugins;
 using UnityEngine;
 
 namespace Oxide.Plugins
@@ -14,9 +13,6 @@ namespace Oxide.Plugins
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
-        [PluginReference]
-        Plugin AirFuel, GetToDaChoppa, VehicleVendorOptions;
-
         private const string _vanillaDefaultsUri = "https://raw.githubusercontent.com/AnExiledDev/StackSizeController/master/vanilla-defaults.json";
 
         private Configuration _config;
@@ -263,41 +259,6 @@ namespace Oxide.Plugins
         #endregion
 
         #region Hooks
-
-        // Credit to WhiteThunder- https://github.com/AnExiledDev/StackSizeController/pull/7
-        // Fix initial fuel amount for vendor-spawned helis since they use 20% of max stack size of low grade.
-        private void OnEntitySpawned(MiniCopter heli)
-        {
-            // Ignore if a known plugin is loaded that adjusts heli fuel.
-            if (AirFuel != null || GetToDaChoppa != null || VehicleVendorOptions != null)
-                return;
-
-            // Must delay for vendor-spawned helis since the creatorEntity is set after spawn.
-            NextTick(() =>
-            {
-                if (heli == null
-                    // Make sure it's a vendor-spawned heli.
-                    || !heli.IsSafe()
-                    // Make sure the game hasn't changed unexpectedly.
-                    || heli.StartingFuelUnits() != -1)
-                    return;
-
-                var fuelItem = heli.GetFuelSystem()?.GetFuelItem();
-                if (fuelItem == null
-                    // Ignore other types of fuel since they will have been placed by mods.
-                    || fuelItem.info.shortname != "lowgradefuel"
-                    // Ignore if the fuel amount is unexpected, since a mod likely adjusted it.
-                    || fuelItem.amount != fuelItem.info.stackable / 5)
-                    return;
-
-                var hookResult = Interface.CallHook("OnVendorHeliFuelAdjust", heli);
-                if (hookResult is bool && (bool)hookResult == false)
-                    return;
-
-                fuelItem.amount = 100;
-                fuelItem.MarkDirty();
-            });
-        }
 
         int OnMaxStackable(Item item)
         {
