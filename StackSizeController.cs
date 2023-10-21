@@ -444,8 +444,9 @@ namespace Oxide.Plugins
             foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions()
                 .Where(itemDefinition => itemDefinition.category == itemCategory))
             {
+                int vanillaStackSize = _vanillaDefaults.TryGetValue(itemDefinition.shortname, out vanillaStackSize) ? vanillaStackSize : itemDefinition.stackable;
                 output.AddRow(itemDefinition.itemid.ToString(), itemDefinition.shortname,
-                    itemDefinition.category.ToString(), _vanillaDefaults[itemDefinition.shortname].ToString("N0"),
+                    itemDefinition.category.ToString(), vanillaStackSize.ToString("N0"),
                     Mathf.Clamp(GetStackSize(itemDefinition), 0, int.MaxValue).ToString("N0"),
                     _config.CategoryStackMultipliers[itemDefinition.category.ToString()].ToString());
             }
