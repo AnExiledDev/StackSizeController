@@ -392,8 +392,7 @@ namespace Oxide.Plugins
         {
             if (args.Length != 1)
             {
-                player.Reply(
-                    string.Format(GetMessage("NotEnoughArguments", player.Id), 1));
+                player.Reply(string.Format(GetMessage("NotEnoughArguments", player.Id), 1));
             }
 
             List<ItemDefinition> itemDefinitions = ItemManager.itemList.Where(itemDefinition =>
@@ -408,8 +407,9 @@ namespace Oxide.Plugins
 
             foreach (ItemDefinition itemDefinition in itemDefinitions)
             {
+                int vanillaStackSize = _vanillaDefaults.TryGetValue(itemDefinition.shortname, out vanillaStackSize) ? vanillaStackSize : itemDefinition.stackable;
                 output.AddRow(itemDefinition.itemid.ToString(), itemDefinition.shortname,
-                    itemDefinition.category.ToString(), _vanillaDefaults[itemDefinition.shortname].ToString("N0"),
+                    itemDefinition.category.ToString(), vanillaStackSize.ToString("N0"),
                     Mathf.Clamp(GetStackSize(itemDefinition), 0, int.MaxValue).ToString("N0"));
             }
 
