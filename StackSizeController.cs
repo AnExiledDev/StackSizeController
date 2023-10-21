@@ -521,8 +521,8 @@ namespace Oxide.Plugins
 
         private int GetVanillaStackSize(ItemDefinition itemDefinition)
         {
-            return _vanillaDefaults.ContainsKey(itemDefinition.shortname)
-                ? _vanillaDefaults[itemDefinition.shortname]
+            return _vanillaDefaults.TryGetValue(itemDefinition.shortname, out int vanillaStackSize)
+                ? vanillaStackSize
                 : itemDefinition.stackable;
         }
 
@@ -540,32 +540,28 @@ namespace Oxide.Plugins
                     return GetVanillaStackSize(itemDefinition);
                 }
 
-                int stackable = GetVanillaStackSize(itemDefinition);
-
-                // Individual Limit set by shortname
-                if (_config.IndividualItemStackSize.ContainsKey(itemDefinition.shortname))
+                // Individual Limit
+                if (!_config.IndividualItemStackSize.TryGetValue(itemDefinition.shortname, out int stackable))
                 {
-                    stackable = _config.IndividualItemStackSize[itemDefinition.shortname];
+                    stackable = GetVanillaStackSize(itemDefinition);
                 }
 
                 // Individual Multiplier set by shortname
-                if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.shortname))
+                if (_config.IndividualItemStackMultipliers.TryGetValue(itemDefinition.shortname, out float stackMultiplierOfShortName))
                 {
-                    return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.shortname]);
+                    return Mathf.RoundToInt(stackable * stackMultiplierOfShortName);
                 }
 
                 // Individual Multiplier set by item id
-                if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.itemid.ToString()))
+                if (_config.IndividualItemStackMultipliers.TryGetValue(itemDefinition.itemid.ToString(), out float stackMultiplierOfId))
                 {
-                    return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.itemid.ToString()]);
+                    return Mathf.RoundToInt(stackable * stackMultiplierOfId);
                 }
 
                 // Category stack multiplier defined
-                if (_config.CategoryStackMultipliers.ContainsKey(itemDefinition.category.ToString()) &&
-                    _config.CategoryStackMultipliers[itemDefinition.category.ToString()] > 1.0f)
+                if (_config.CategoryStackMultipliers.TryGetValue(itemDefinition.category.ToString(), out float categoryStackMultiplier) && categoryStackMultiplier > 1.0f)
                 {
-                    return Mathf.RoundToInt(
-                        stackable * _config.CategoryStackMultipliers[itemDefinition.category.ToString()]);
+                    return Mathf.RoundToInt(stackable * categoryStackMultiplier);
                 }
 
                 return Mathf.RoundToInt(stackable * _config.GlobalStackMultiplier);
