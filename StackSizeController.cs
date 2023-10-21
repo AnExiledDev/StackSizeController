@@ -21,6 +21,7 @@ namespace Oxide.Plugins
 
         private Configuration _config;
         private Dictionary<string, int> _vanillaDefaults;
+        private Dictionary<int, int> _computedStackSizesByItemId = new Dictionary<int, int>();
 
         private readonly List<string> _ignoreList = new List<string>
         {
@@ -535,41 +536,51 @@ namespace Oxide.Plugins
         {
             try
             {
+                // Cached Stack Size
+                if (this._computedStackSizesByItemId.TryGetValue(itemDefinition.itemid, out int stackSize))
+                {
+                  return stackSize;
+                }
+                // Ignored Items
                 if (_ignoreList.Contains(itemDefinition.shortname))
                 {
-                    return GetVanillaStackSize(itemDefinition);
+                    stackSize = GetVanillaStackSize(itemDefinition);
                 }
-
-                // Individual Limit
-                if (!_config.IndividualItemStackSize.TryGetValue(itemDefinition.shortname, out int stackable))
+                else
                 {
-                    stackable = GetVanillaStackSize(itemDefinition);
+                    // Individual Limit
+                    if (!_config.IndividualItemStackSize.TryGetValue(itemDefinition.shortname, out int stackable))
+                    {
+                        stackable = GetVanillaStackSize(itemDefinition);
+                    }
+                    // Individual Multiplier set by shortname
+                    if (_config.IndividualItemStackMultipliers.TryGetValue(itemDefinition.shortname, out float stackMultiplierOfShortName))
+                    {
+                        stackSize = Mathf.RoundToInt(stackable * stackMultiplierOfShortName);
+                    }
+                    // Individual Multiplier set by item id
+                    else if (_config.IndividualItemStackMultipliers.TryGetValue(itemDefinition.itemid.ToString(), out float stackMultiplierOfId))
+                    {
+                        stackSize = Mathf.RoundToInt(stackable * stackMultiplierOfId);
+                    }
+                    // Category stack multiplier defined
+                    else if (_config.CategoryStackMultipliers.TryGetValue(itemDefinition.category.ToString(), out float stackMultiplierOfCategory) && stackMultiplierOfCategory > 1.0f)
+                    {
+                        stackSize = Mathf.RoundToInt(stackable * stackMultiplierOfCategory);
+                    }
+                    // Global stack multiplier
+                    else
+                    {
+                        stackSize = Mathf.RoundToInt(stackable * _config.GlobalStackMultiplier);
+                    }
                 }
-
-                // Individual Multiplier set by shortname
-                if (_config.IndividualItemStackMultipliers.TryGetValue(itemDefinition.shortname, out float stackMultiplierOfShortName))
-                {
-                    return Mathf.RoundToInt(stackable * stackMultiplierOfShortName);
-                }
-
-                // Individual Multiplier set by item id
-                if (_config.IndividualItemStackMultipliers.TryGetValue(itemDefinition.itemid.ToString(), out float stackMultiplierOfId))
-                {
-                    return Mathf.RoundToInt(stackable * stackMultiplierOfId);
-                }
-
-                // Category stack multiplier defined
-                if (_config.CategoryStackMultipliers.TryGetValue(itemDefinition.category.ToString(), out float categoryStackMultiplier) && categoryStackMultiplier > 1.0f)
-                {
-                    return Mathf.RoundToInt(stackable * categoryStackMultiplier);
-                }
-
-                return Mathf.RoundToInt(stackable * _config.GlobalStackMultiplier);
+                // Cache Computed Stack Size
+                this._computedStackSizesByItemId.Add(itemDefinition.itemid, stackSize);
+                return stackSize;
             }
             catch (Exception ex)
             {
                 LogError("Exception encountered during GetStackSize. Item: " + itemDefinition.shortname + " Ex:" + ex.ToString());
-
                 return GetVanillaStackSize(itemDefinition);
             }
         }
@@ -592,6 +603,8 @@ namespace Oxide.Plugins
 
                 itemDefinition.stackable = Mathf.Clamp(GetStackSize(itemDefinition), 1, int.MaxValue);
             }
+            // Invalidate Stack Size Cache
+            _computedStackSizesByItemId.Clear();
         }
 
         private void RevertStackSizes()
@@ -612,6 +625,8 @@ namespace Oxide.Plugins
 
                 itemDefinition.stackable = Mathf.Clamp(GetVanillaStackSize(itemDefinition), 1, int.MaxValue);
             }
+            // Invalidate Stack Size Cache
+            _computedStackSizesByItemId.Clear();
         }
 
         #endregion
