@@ -10,17 +10,18 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledDev", "4.1.1")]
+    [Info("Stack Size Controller", "AnExiledDev/optimized by WouayNote", "4.1.3")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
         [PluginReference]
         Plugin AirFuel, GetToDaChoppa, VehicleVendorOptions;
 
-        private const string _vanillaDefaultsUri = "https://raw.githubusercontent.com/AnExiledDev/StackSizeController/master/vanilla-defaults.json";
+        private const string _vanillaDefaultsUri = "https://raw.githubusercontent.com/WouayNote/StackSizeController/master/vanilla-defaults.json";
 
         private Configuration _config;
         private Dictionary<string, int> _vanillaDefaults;
+        private Dictionary<int, int> _computedStackSizesByItemId = new Dictionary<int, int>();
 
         private readonly List<string> _ignoreList = new List<string>
         {
@@ -266,7 +267,7 @@ namespace Oxide.Plugins
 
         // Credit to WhiteThunder- https://github.com/AnExiledDev/StackSizeController/pull/7
         // Fix initial fuel amount for vendor-spawned helis since they use 20% of max stack size of low grade.
-        private void OnEntitySpawned(MiniCopter heli)
+        private void OnEntitySpawned(Minicopter heli)
         {
             // Ignore if a known plugin is loaded that adjusts heli fuel.
             if (AirFuel != null || GetToDaChoppa != null || VehicleVendorOptions != null)
@@ -391,8 +392,7 @@ namespace Oxide.Plugins
         {
             if (args.Length != 1)
             {
-                player.Reply(
-                    string.Format(GetMessage("NotEnoughArguments", player.Id), 1));
+                player.Reply(string.Format(GetMessage("NotEnoughArguments", player.Id), 1));
             }
 
             List<ItemDefinition> itemDefinitions = ItemManager.itemList.Where(itemDefinition =>
@@ -407,8 +407,9 @@ namespace Oxide.Plugins
 
             foreach (ItemDefinition itemDefinition in itemDefinitions)
             {
+                int vanillaStackSize = _vanillaDefaults.TryGetValue(itemDefinition.shortname, out vanillaStackSize) ? vanillaStackSize : itemDefinition.stackable;
                 output.AddRow(itemDefinition.itemid.ToString(), itemDefinition.shortname,
-                    itemDefinition.category.ToString(), _vanillaDefaults[itemDefinition.shortname].ToString("N0"),
+                    itemDefinition.category.ToString(), vanillaStackSize.ToString("N0"),
                     Mathf.Clamp(GetStackSize(itemDefinition), 0, int.MaxValue).ToString("N0"));
             }
 
@@ -443,8 +444,9 @@ namespace Oxide.Plugins
             foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions()
                 .Where(itemDefinition => itemDefinition.category == itemCategory))
             {
+                int vanillaStackSize = _vanillaDefaults.TryGetValue(itemDefinition.shortname, out vanillaStackSize) ? vanillaStackSize : itemDefinition.stackable;
                 output.AddRow(itemDefinition.itemid.ToString(), itemDefinition.shortname,
-                    itemDefinition.category.ToString(), _vanillaDefaults[itemDefinition.shortname].ToString("N0"),
+                    itemDefinition.category.ToString(), vanillaStackSize.ToString("N0"),
                     Mathf.Clamp(GetStackSize(itemDefinition), 0, int.MaxValue).ToString("N0"),
                     _config.CategoryStackMultipliers[itemDefinition.category.ToString()].ToString());
             }
@@ -521,8 +523,8 @@ namespace Oxide.Plugins
 
         private int GetVanillaStackSize(ItemDefinition itemDefinition)
         {
-            return _vanillaDefaults.ContainsKey(itemDefinition.shortname)
-                ? _vanillaDefaults[itemDefinition.shortname]
+            return _vanillaDefaults.TryGetValue(itemDefinition.shortname, out int vanillaStackSize)
+                ? vanillaStackSize
                 : itemDefinition.stackable;
         }
 
@@ -535,45 +537,51 @@ namespace Oxide.Plugins
         {
             try
             {
+                // Cached Stack Size
+                if (this._computedStackSizesByItemId.TryGetValue(itemDefinition.itemid, out int stackSize))
+                {
+                  return stackSize;
+                }
+                // Ignored Items
                 if (_ignoreList.Contains(itemDefinition.shortname))
                 {
-                    return GetVanillaStackSize(itemDefinition);
+                    stackSize = GetVanillaStackSize(itemDefinition);
                 }
-
-                int stackable = GetVanillaStackSize(itemDefinition);
-
-                // Individual Limit set by shortname
-                if (_config.IndividualItemStackSize.ContainsKey(itemDefinition.shortname))
+                else
                 {
-                    stackable = _config.IndividualItemStackSize[itemDefinition.shortname];
+                    // Individual Limit
+                    if (!_config.IndividualItemStackSize.TryGetValue(itemDefinition.shortname, out int stackable))
+                    {
+                        stackable = GetVanillaStackSize(itemDefinition);
+                    }
+                    // Individual Multiplier set by shortname
+                    if (_config.IndividualItemStackMultipliers.TryGetValue(itemDefinition.shortname, out float stackMultiplierOfShortName))
+                    {
+                        stackSize = Mathf.RoundToInt(stackable * stackMultiplierOfShortName);
+                    }
+                    // Individual Multiplier set by item id
+                    else if (_config.IndividualItemStackMultipliers.TryGetValue(itemDefinition.itemid.ToString(), out float stackMultiplierOfId))
+                    {
+                        stackSize = Mathf.RoundToInt(stackable * stackMultiplierOfId);
+                    }
+                    // Category stack multiplier defined
+                    else if (_config.CategoryStackMultipliers.TryGetValue(itemDefinition.category.ToString(), out float stackMultiplierOfCategory) && stackMultiplierOfCategory > 1.0f)
+                    {
+                        stackSize = Mathf.RoundToInt(stackable * stackMultiplierOfCategory);
+                    }
+                    // Global stack multiplier
+                    else
+                    {
+                        stackSize = Mathf.RoundToInt(stackable * _config.GlobalStackMultiplier);
+                    }
                 }
-
-                // Individual Multiplier set by shortname
-                if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.shortname))
-                {
-                    return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.shortname]);
-                }
-
-                // Individual Multiplier set by item id
-                if (_config.IndividualItemStackMultipliers.ContainsKey(itemDefinition.itemid.ToString()))
-                {
-                    return Mathf.RoundToInt(stackable * _config.IndividualItemStackMultipliers[itemDefinition.itemid.ToString()]);
-                }
-
-                // Category stack multiplier defined
-                if (_config.CategoryStackMultipliers.ContainsKey(itemDefinition.category.ToString()) &&
-                    _config.CategoryStackMultipliers[itemDefinition.category.ToString()] > 1.0f)
-                {
-                    return Mathf.RoundToInt(
-                        stackable * _config.CategoryStackMultipliers[itemDefinition.category.ToString()]);
-                }
-
-                return Mathf.RoundToInt(stackable * _config.GlobalStackMultiplier);
+                // Cache Computed Stack Size
+                this._computedStackSizesByItemId.Add(itemDefinition.itemid, stackSize);
+                return stackSize;
             }
             catch (Exception ex)
             {
                 LogError("Exception encountered during GetStackSize. Item: " + itemDefinition.shortname + " Ex:" + ex.ToString());
-
                 return GetVanillaStackSize(itemDefinition);
             }
         }
@@ -596,6 +604,8 @@ namespace Oxide.Plugins
 
                 itemDefinition.stackable = Mathf.Clamp(GetStackSize(itemDefinition), 1, int.MaxValue);
             }
+            // Invalidate Stack Size Cache
+            _computedStackSizesByItemId.Clear();
         }
 
         private void RevertStackSizes()
@@ -616,6 +626,8 @@ namespace Oxide.Plugins
 
                 itemDefinition.stackable = Mathf.Clamp(GetVanillaStackSize(itemDefinition), 1, int.MaxValue);
             }
+            // Invalidate Stack Size Cache
+            _computedStackSizesByItemId.Clear();
         }
 
         #endregion
