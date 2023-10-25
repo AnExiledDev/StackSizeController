@@ -10,14 +10,14 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledDev/patched by chrome", "4.1.2")]
+    [Info("Stack Size Controller", "AnExiledDev/optimized by WouayNote", "4.1.3")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
         [PluginReference]
         Plugin AirFuel, GetToDaChoppa, VehicleVendorOptions;
 
-        private const string _vanillaDefaultsUri = "https://raw.githubusercontent.com/AnExiledDev/StackSizeController/master/vanilla-defaults.json";
+        private const string _vanillaDefaultsUri = "https://raw.githubusercontent.com/WouayNote/StackSizeController/master/vanilla-defaults.json";
 
         private Configuration _config;
         private Dictionary<string, int> _vanillaDefaults;
