@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledDev", "4.1.1")]
+    [Info("Stack Size Controller", "AnExiledDev/patched by chrome", "4.1.3")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
@@ -266,7 +266,7 @@ namespace Oxide.Plugins
 
         // Credit to WhiteThunder- https://github.com/AnExiledDev/StackSizeController/pull/7
         // Fix initial fuel amount for vendor-spawned helis since they use 20% of max stack size of low grade.
-        private void OnEntitySpawned(MiniCopter heli)
+        private void OnEntitySpawned(Minicopter heli)
         {
             // Ignore if a known plugin is loaded that adjusts heli fuel.
             if (AirFuel != null || GetToDaChoppa != null || VehicleVendorOptions != null)
@@ -282,7 +282,7 @@ namespace Oxide.Plugins
                     || heli.StartingFuelUnits() != -1)
                     return;
 
-                var fuelItem = heli.GetFuelSystem()?.GetFuelItem();
+                var fuelItem = (heli.GetFuelSystem() as EntityFuelSystem)?.GetFuelItem();
                 if (fuelItem == null
                     // Ignore other types of fuel since they will have been placed by mods.
                     || fuelItem.info.shortname != "lowgradefuel"
