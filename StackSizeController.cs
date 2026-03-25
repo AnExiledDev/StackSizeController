@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledDev/patched by chrome", "4.1.3")]
+    [Info("Stack Size Controller", "AnExiledDev/patched by chrome", "4.1.4")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
@@ -396,8 +396,8 @@ namespace Oxide.Plugins
             }
 
             List<ItemDefinition> itemDefinitions = ItemManager.itemList.Where(itemDefinition =>
-                    itemDefinition.displayName.english.Contains(args[0]) ||
-                    itemDefinition.displayDescription.english.Contains(args[0]) ||
+                    (itemDefinition.displayName?.english != null && itemDefinition.displayName.english.Contains(args[0])) ||
+                    (itemDefinition.displayDescription?.english != null && itemDefinition.displayDescription.english.Contains(args[0])) ||
                     itemDefinition.shortname.Equals(args[0]) ||
                     itemDefinition.shortname.Contains(args[0]))
                 .ToList();
@@ -407,8 +407,9 @@ namespace Oxide.Plugins
 
             foreach (ItemDefinition itemDefinition in itemDefinitions)
             {
+                int vanillaStackSize = GetVanillaStackSize(itemDefinition);
                 output.AddRow(itemDefinition.itemid.ToString(), itemDefinition.shortname,
-                    itemDefinition.category.ToString(), _vanillaDefaults[itemDefinition.shortname].ToString("N0"),
+                    itemDefinition.category.ToString(), vanillaStackSize.ToString("N0"),
                     Mathf.Clamp(GetStackSize(itemDefinition), 0, int.MaxValue).ToString("N0"));
             }
 
@@ -443,10 +444,15 @@ namespace Oxide.Plugins
             foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions()
                 .Where(itemDefinition => itemDefinition.category == itemCategory))
             {
+                int vanillaStackSize = GetVanillaStackSize(itemDefinition);
+                float categoryMultiplier = _config.CategoryStackMultipliers.ContainsKey(itemDefinition.category.ToString())
+                    ? _config.CategoryStackMultipliers[itemDefinition.category.ToString()]
+                    : 1f;
+
                 output.AddRow(itemDefinition.itemid.ToString(), itemDefinition.shortname,
-                    itemDefinition.category.ToString(), _vanillaDefaults[itemDefinition.shortname].ToString("N0"),
+                    itemDefinition.category.ToString(), vanillaStackSize.ToString("N0"),
                     Mathf.Clamp(GetStackSize(itemDefinition), 0, int.MaxValue).ToString("N0"),
-                    _config.CategoryStackMultipliers[itemDefinition.category.ToString()].ToString());
+                    categoryMultiplier.ToString());
             }
 
             player.Reply(output.ToString());
