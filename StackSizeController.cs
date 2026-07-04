@@ -8,9 +8,39 @@ using Oxide.Core.Libraries.Covalence;
 using Oxide.Core.Plugins;
 using UnityEngine;
 
+// ---------------------------------------------------------------------------
+// Patch notes (4.1.4)
+//   Fixes for stateful items being made stackable and for items missing from
+//   the (stale) repo vanilla-defaults file being mis-anchored / crashing:
+//
+//   1. _ignoreList now also protects liquid CONTAINERS (waterjug, botabag,
+//      smallwaterbottle, bucket.water, gun.water, pistol.water). Previously
+//      only the liquid unit items ("water", "water.salt") were protected, so
+//      the containers holding those liquids were still being resized and could
+//      dupe/lose their contents when stacked.
+//
+//   2. DownloadVanillaDefaults() now prefers the locally-maintained
+//      "<plugin>_vanilla-defaults" datafile instead of overwriting it from the
+//      repo on every load. The repo file is stale and missing items added by
+//      newer Rust updates (e.g. hazmatsuit.pilot); overwriting it meant those
+//      items had no fixed vanilla anchor and fell back to their live (already
+//      modified) stack size, which then compounded on reload. The repo is only
+//      fetched on first install (no local file) or when the new config option
+//      UpdateVanillaDefaultsFromRepo is set to true.
+//
+//   3. ItemSearchCommand / ListCategoryItemsCommand now use GetVanillaStackSize()
+//      instead of indexing _vanillaDefaults directly, which threw
+//      KeyNotFoundException for any item missing from the defaults file.
+//
+//   4. Additional null checks for those two commands, incorporating PR #27 by
+//      IsaiahPetrichor: guard displayName/displayDescription (null on some item
+//      definitions) in ItemSearchCommand, and guard the CategoryStackMultipliers
+//      lookup with ContainsKey in ListCategoryItemsCommand.
+// ---------------------------------------------------------------------------
+
 namespace Oxide.Plugins
 {
-    [Info("Stack Size Controller", "AnExiledDev/patched by chrome", "4.1.3")]
+    [Info("Stack Size Controller", "AnExiledDev/patched by chrome", "4.1.4")]
     [Description("Allows configuration of most items max stack size.")]
     class StackSizeController : CovalencePlugin
     {
@@ -24,8 +54,18 @@ namespace Oxide.Plugins
 
         private readonly List<string> _ignoreList = new List<string>
         {
+            // Liquid unit items (the contents).
             "water",
             "water.salt",
+            // Liquid CONTAINERS - hold a variable amount of liquid as sub-state,
+            // so stacking them dupes/loses contents. Keep them at vanilla (1).
+            "waterjug",
+            "botabag",
+            "smallwaterbottle",
+            "bucket.water",
+            "gun.water",
+            "pistol.water",
+            // Misc items that misbehave when resized.
             "cardtable",
             "hat.bunnyhat",
             "rustige_egg_e"
@@ -76,6 +116,13 @@ namespace Oxide.Plugins
             public bool RevertStackSizesToVanillaOnUnload = true;
             public bool AllowStackingItemsWithDurability = true;
             public bool HidePrefixWithPluginNameInMessages;
+
+            // Patch (4.1.4): When false (default), the locally-maintained
+            // vanilla-defaults datafile is used and never overwritten by the
+            // repo copy, so manually-added newer items are preserved. The repo
+            // is still fetched once on first install (when no local file exists).
+            // Set to true to restore the old always-download-from-repo behavior.
+            public bool UpdateVanillaDefaultsFromRepo = false;
 
             public float GlobalStackMultiplier = 1;
             public Dictionary<string, float> CategoryStackMultipliers = GetCategoriesAndDefaults(1)
@@ -395,9 +442,12 @@ namespace Oxide.Plugins
                     string.Format(GetMessage("NotEnoughArguments", player.Id), 1));
             }
 
+            // Patch (4.1.4, from PR #27 by IsaiahPetrichor): null-guard displayName /
+            // displayDescription, which are null on some item definitions and were
+            // throwing NullReferenceException and making this command unusable.
             List<ItemDefinition> itemDefinitions = ItemManager.itemList.Where(itemDefinition =>
-                    itemDefinition.displayName.english.Contains(args[0]) ||
-                    itemDefinition.displayDescription.english.Contains(args[0]) ||
+                    (itemDefinition.displayName?.english != null && itemDefinition.displayName.english.Contains(args[0])) ||
+                    (itemDefinition.displayDescription?.english != null && itemDefinition.displayDescription.english.Contains(args[0])) ||
                     itemDefinition.shortname.Equals(args[0]) ||
                     itemDefinition.shortname.Contains(args[0]))
                 .ToList();
@@ -407,8 +457,10 @@ namespace Oxide.Plugins
 
             foreach (ItemDefinition itemDefinition in itemDefinitions)
             {
+                // Patch (4.1.4): use GetVanillaStackSize() so items missing from the
+                // defaults file don't throw KeyNotFoundException.
                 output.AddRow(itemDefinition.itemid.ToString(), itemDefinition.shortname,
-                    itemDefinition.category.ToString(), _vanillaDefaults[itemDefinition.shortname].ToString("N0"),
+                    itemDefinition.category.ToString(), GetVanillaStackSize(itemDefinition).ToString("N0"),
                     Mathf.Clamp(GetStackSize(itemDefinition), 0, int.MaxValue).ToString("N0"));
             }
 
@@ -443,10 +495,17 @@ namespace Oxide.Plugins
             foreach (ItemDefinition itemDefinition in ItemManager.GetItemDefinitions()
                 .Where(itemDefinition => itemDefinition.category == itemCategory))
             {
+                // Patch (4.1.4): use GetVanillaStackSize() so items missing from the
+                // defaults file don't throw KeyNotFoundException.
+                // Category-multiplier ContainsKey guard from PR #27 by IsaiahPetrichor.
+                float categoryMultiplier = _config.CategoryStackMultipliers.ContainsKey(itemDefinition.category.ToString())
+                    ? _config.CategoryStackMultipliers[itemDefinition.category.ToString()]
+                    : 1f;
+
                 output.AddRow(itemDefinition.itemid.ToString(), itemDefinition.shortname,
-                    itemDefinition.category.ToString(), _vanillaDefaults[itemDefinition.shortname].ToString("N0"),
+                    itemDefinition.category.ToString(), GetVanillaStackSize(itemDefinition).ToString("N0"),
                     Mathf.Clamp(GetStackSize(itemDefinition), 0, int.MaxValue).ToString("N0"),
-                    _config.CategoryStackMultipliers[itemDefinition.category.ToString()].ToString());
+                    categoryMultiplier.ToString());
             }
 
             player.Reply(output.ToString());
@@ -486,6 +545,38 @@ namespace Oxide.Plugins
 
         private void DownloadVanillaDefaults()
         {
+            // Patch (4.1.4): Prefer the locally-maintained vanilla defaults datafile so
+            // manual additions of newer items (items added by Rust updates that the stale
+            // repo file is missing, e.g. hazmatsuit.pilot) are not overwritten on every
+            // load. Only fetch from the repo when explicitly opted in via config, or when
+            // no local datafile exists yet (first install, to bootstrap).
+            if (!_config.UpdateVanillaDefaultsFromRepo)
+            {
+                Dictionary<string, int> localDefaults = null;
+
+                try
+                {
+                    localDefaults = Interface.Oxide.DataFileSystem.ReadObject<Dictionary<string, int>>(
+                        nameof(StackSizeController) + "_vanilla-defaults");
+                }
+                catch (Exception ex)
+                {
+                    LogWarning($"Could not read local vanilla defaults datafile, will fetch from repo instead. {ex.Message}");
+                }
+
+                if (localDefaults != null && localDefaults.Count > 0)
+                {
+                    Log("Using locally-maintained vanilla defaults datafile (repo download skipped). " +
+                        "Set UpdateVanillaDefaultsFromRepo to true in the config to fetch from GitHub instead.");
+
+                    SetVanillaDefaults(200, JsonConvert.SerializeObject(localDefaults));
+
+                    return;
+                }
+
+                Log("No local vanilla defaults datafile found; fetching once from the repo to bootstrap.");
+            }
+
             Log($"Acquiring vanilla defaults file from official GitHub repo and overwriting; {_vanillaDefaultsUri}");
 
             try

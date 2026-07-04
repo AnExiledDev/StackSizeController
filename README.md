@@ -4,13 +4,25 @@
 * Stacks can easily be modified globally, by category or individually in the configuration file.
 * Several quality of life commands allowing you to **search all items** and list categories.
 * Item search displays vanilla stack rate as well as custom stack rate after multipliers.
+* Stateful/container items (water containers, etc.) are protected from resizing so they don't dupe or lose their contents.
 
 
 ## Quick Important Notes
 * Running the plugin once generates items in configuration for IndividualItemStackSize from vanilla defaults. This list is automatically updated when new items are detected, and a notification is put in the console.
-* Multipliers multiply IndividualItemStackSize definitions not vanilla stack size. Individual multipliers take priority over category stack multipliers. 
-* Datafiles are no longer used. Editing vanilla-defaults does nothing but screw up stack sizes when unloading the plugin.
+* Multipliers multiply IndividualItemStackSize definitions not vanilla stack size. Individual multipliers take priority over category stack multipliers.
+* This fork uses a local **vanilla defaults datafile** (`oxide/data/StackSizeController_vanilla-defaults.json`) as the authoritative source of vanilla stack sizes. By default (`UpdateVanillaDefaultsFromRepo: false`) this file is **not** overwritten from the GitHub repo on load — the repo copy is stale and missing items added by newer Rust updates, and overwriting it caused those items to lose their vanilla anchor. The repo is only fetched once to bootstrap when no local datafile exists, or on every load if you set `UpdateVanillaDefaultsFromRepo: true`.
+* Some items are **never resized** regardless of multipliers (see "Protected Items" below).
 * Stacking an item over 2,147,483,647 will cause an error when loaded and will not stack the item at that number. 2,147,483,647 is the max for stack sizes for all stack size plugins as it is a hardcoded limitation of Rust.
+
+
+## Protected Items (never resized)
+Certain items hold variable sub-state (a liquid amount, condition/attachments, etc.). Stacking them merges or duplicates that state, causing item dupes or content loss, so they are always kept at their vanilla stack size:
+
+* `water`, `water.salt` — the liquid unit items.
+* `waterjug`, `botabag`, `smallwaterbottle`, `bucket.water`, `gun.water`, `pistol.water` — liquid **containers** that hold a variable amount of liquid.
+* `cardtable`, `hat.bunnyhat`, `rustige_egg_e` — misc items that misbehave when resized.
+
+In addition, if `AllowStackingItemsWithDurability` is `false`, every item with durability (weapons, armor, tools — anything with condition/attachment sub-state) is forced back to its vanilla stack size. Set this to `false` if you are seeing armor/weapons dupe their attachments or slotted items when stacked.
 
 
 ## Installation Instructions
@@ -18,6 +30,15 @@
 * Start server and wait for StackSizeController to be loaded.
 * Open the configuration and modify settings as needed. Setting individual stack sizes is done in the configuration NOT datafile in value IndividualItemStackSize which is generated on plugin load.
 * Run o.reload StackSizeController in console to set configured stack sizes.
+
+### Keeping vanilla defaults current after a Rust update
+Because the repo defaults file is stale, the recommended way to pick up items added by a game update is to regenerate the local datafile from your own server:
+
+1. Temporarily set `GlobalStackMultiplier` and every `CategoryStackMultipliers` entry to `1` (so nothing is modified away from vanilla), then reload the plugin.
+2. Run `stacksizecontroller.vd` in the console. This reverts stacks to vanilla, writes every current item definition's stack size to `StackSizeController_vanilla-defaults.json`, then restores your custom sizes.
+3. Restore your multipliers.
+
+With `UpdateVanillaDefaultsFromRepo` left at `false`, that generated file stays authoritative and won't be overwritten. Re-run after each wipe/game update to capture newly added items.
 
 
 ## Console Commands
@@ -83,6 +104,15 @@
 
 ##### Updates configuration file, changing every category to the defined multiplier.
 
+----
+
+### **stacksizecontroller.vd**
+##### **Permission:** `stacksizecontroller.vd`
+##### **Usage:** `stacksizecontroller.vd`
+##### **Parameters:** `No Parameters`
+
+##### Regenerates the local `StackSizeController_vanilla-defaults.json` datafile from the current server's item definitions, then restores your custom stack sizes. Run it (with all multipliers temporarily set to `1`) after a Rust update to capture newly added items. See "Keeping vanilla defaults current after a Rust update" above.
+
 
 ## Configuration
 
@@ -92,6 +122,7 @@
   "RevertStackSizesToVanillaOnUnload": true,
   "AllowStackingItemsWithDurability": true,
   "HidePrefixWithPluginNameInMessages": false,
+  "UpdateVanillaDefaultsFromRepo": false,
   "GlobalStackMultiplier": 1.0,
   "CategoryStackMultipliers": {
     "Weapon": 1.0,
@@ -117,8 +148,8 @@
   "IndividualItemStackSize": {},
   "VersionNumber": {
     "Major": 4,
-    "Minor": 0,
-    "Patch": 0
+    "Minor": 1,
+    "Patch": 4
   }
 }
 ```
@@ -129,6 +160,7 @@
   "RevertStackSizesToVanillaOnUnload": true,
   "AllowStackingItemsWithDurability": true,
   "HidePrefixWithPluginNameInMessages": false,
+  "UpdateVanillaDefaultsFromRepo": false,
   "GlobalStackMultiplier": 1.0,
   "CategoryStackMultipliers": {
     "Weapon": 1.0,
@@ -172,15 +204,16 @@
   },
   "VersionNumber": {
     "Major": 4,
-    "Minor": 0,
-    "Patch": 0
+    "Minor": 1,
+    "Patch": 4
   }
 }
 ```
 
 - `RevertStackSizesToVanillaOnUnload` - If true; item stacksizes are returned to vanilla defaults on plugin unload.
-- `AllowStackingItemsWithDurability` - If enabled, items with durability such as weapons can be stacked if they are at full durability. If disabled items with durability can't be stacked at all. (Contents, attachments and ammo are all returned to the player)
+- `AllowStackingItemsWithDurability` - If enabled, items with durability such as weapons can be stacked if they are at full durability. If disabled items with durability can't be stacked at all. (Contents, attachments and ammo are all returned to the player.) Set to `false` if armor/weapons are duping slotted items or attachments when stacked.
 - `HidePrefixWithPluginNameInMessages` - Currently does nothing. Future version will hide the prefix from chat messages in-game.
+- `UpdateVanillaDefaultsFromRepo` - If `false` (default), the local `StackSizeController_vanilla-defaults.json` datafile is authoritative and is not overwritten from the GitHub repo on load (the repo copy is stale). The repo is still fetched once to bootstrap if no local datafile exists. Set to `true` to restore the old always-download-from-repo behavior.
 - `GlobalStackMultiplier` - Multiplies all item stacks by this value.
 - `CategoryStackMultipliers` - Each category will multiply stacks for those items by the defined amount.
 - `IndividualItemStackMultipliers` - Accepts "item_id": multiplier. Use stacksizecontroller.itemsearch to find the item id easily.
@@ -197,3 +230,10 @@
 ```csharp
 bool? OnVendorHeliFuelAdjust(MiniCopter heli)
 ```
+
+## Changelog
+
+### 4.1.4
+- **Protected liquid containers from resizing.** Added `waterjug`, `botabag`, `smallwaterbottle`, `bucket.water`, `gun.water`, and `pistol.water` to the ignore list. Previously only the liquid unit items (`water`, `water.salt`) were protected, so the containers holding those liquids were still being resized and could dupe or lose their contents when stacked.
+- **Stopped the stale repo defaults from clobbering local edits.** The local `StackSizeController_vanilla-defaults.json` datafile is now authoritative and is no longer overwritten from GitHub on every load. Added the `UpdateVanillaDefaultsFromRepo` config option (default `false`). This fixes newer items (e.g. `hazmatsuit.pilot`) that were missing from the stale repo file losing their vanilla anchor, falling back to their live (already-modified) stack size, and compounding on reload.
+- **Fixed `itemsearch` / `listcategoryitems` crashing.** These commands indexed the defaults dictionary directly and threw `KeyNotFoundException` for any item missing from the file; they now use `GetVanillaStackSize()`. Incorporates [PR #27](https://github.com/AnExiledDev/StackSizeController/pull/27) by IsaiahPetrichor: null-guards on `displayName`/`displayDescription` in `itemsearch` (null on some item definitions) and a `ContainsKey` guard on the category multiplier lookup in `listcategoryitems`.
